@@ -189,7 +189,7 @@ const MoviePlayerPage = () => {
                         <>
                           <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center"><Crown className="w-5 h-5 text-primary" /></div>
                           <span className="text-foreground text-xs font-bold">Subscribe to Watch</span>
-                          <span className="text-muted-foreground text-[10px]">From UGX 3,500/day</span>
+                          <span className="text-muted-foreground text-[10px]">From UGX 2,000/day</span>
                           <span className="mt-1 bg-primary text-primary-foreground text-[11px] font-bold px-5 py-1.5 rounded-lg">Subscribe Now</span>
                         </>
                       )}
