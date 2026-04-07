@@ -6,6 +6,7 @@ import { ChevronRight, Mail, Music as MusicIcon } from "lucide-react";
 import { FireMusic } from "@/lib/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import CreatorAuthModal from "@/components/CreatorAuthModal";
+import MusicHeroSlider from "@/components/MusicHeroSlider";
 
 const musicCategories = ["All", "Afrobeat", "Hip Hop", "Gospel", "Dancehall", "RnB", "Traditional", "Live", "Trending"];
 
@@ -52,6 +53,7 @@ const MusicPage = () => {
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       <div className="max-w-7xl mx-auto px-3 py-3">
+        <MusicHeroSlider />
         <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
           {musicCategories.map((cat) => (
             <button

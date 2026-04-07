@@ -12,7 +12,7 @@ import {
   addMovie, addMusicVideo, addTikTokVideo, addChannel, addEpisode, deleteEpisode, updateEpisode,
   saveProfileToFirestore,
 } from "@/lib/firestore";
-import { addCarousel, getCarousels, deleteCarousel, FireCarousel } from "@/lib/carousels";
+import { addCarousel, getCarousels, deleteCarousel, FireCarousel, addMusicSlide, getMusicSlides, deleteMusicSlide, FireMusicSlide } from "@/lib/carousels";
 import { activateSubscription } from "@/contexts/SubscriptionContext";
 import { useMovies, useMusicVideos, useTikTokVideos, useChannels, useActivities } from "@/hooks/useFirestore";
 import { getWalletBalance, getTransactionHistory, sendWithdrawal, formatPhone } from "@/lib/payments";
@@ -28,7 +28,7 @@ import { genreList } from "@/data/categories";
 
 const ADMIN_EMAIL = "mainplatform.nexus@gmail.com";
 
-type Tab = "overview" | "add-creator" | "users" | "upload" | "manage" | "subscriptions" | "wallet" | "carousel" | "earnings";
+type Tab = "overview" | "add-creator" | "users" | "upload" | "manage" | "subscriptions" | "wallet" | "carousel" | "music-slides" | "earnings";
 
 const AdminDashboard = () => {
   const { user, isLoading } = useAuth();
@@ -46,6 +46,7 @@ const AdminDashboard = () => {
     { id: "subscriptions", label: "Subscriptions", icon: Crown },
     { id: "wallet", label: "Wallet", icon: Wallet },
     { id: "carousel", label: "Carousel", icon: Image },
+    { id: "music-slides", label: "Music Slides", icon: Music },
     { id: "earnings", label: "Creator Earnings", icon: TrendingUp },
   ];
 
@@ -71,6 +72,7 @@ const AdminDashboard = () => {
         {activeTab === "subscriptions" && <SubscriptionsTab />}
         {activeTab === "wallet" && <WalletTab />}
         {activeTab === "carousel" && <CarouselTab />}
+        {activeTab === "music-slides" && <MusicSlidesTab />}
         {activeTab === "earnings" && <CreatorEarningsTab />}
       </div>
     </div>
@@ -953,6 +955,89 @@ const CarouselTab = () => {
                   {c.linkUrl && <p className="text-primary text-[9px] truncate">{c.linkUrl}</p>}
                 </div>
                 <button onClick={() => handleDelete(c.id)} className="text-destructive hover:text-destructive/80 p-1 flex-shrink-0">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
+// ========== MUSIC SLIDES ==========
+const MusicSlidesTab = () => {
+  const [slides, setSlides] = useState<FireMusicSlide[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [sTitle, setSTitle] = useState("");
+  const [sImage, setSImage] = useState("");
+  const [sLink, setSLink] = useState("");
+  const [sDesc, setSDesc] = useState("");
+
+  useEffect(() => {
+    getMusicSlides().then(s => { setSlides(s); setLoading(false); });
+  }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sImage) { toast.error("Image URL required"); return; }
+    setUploading(true);
+    try {
+      await addMusicSlide({ title: sTitle, imageUrl: sImage, linkUrl: sLink, description: sDesc });
+      toast.success("Music slide added!");
+      setSTitle(""); setSImage(""); setSLink(""); setSDesc("");
+      const updated = await getMusicSlides();
+      setSlides(updated);
+    } catch { toast.error("Failed to add slide"); }
+    setUploading(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this slide?")) return;
+    try {
+      await deleteMusicSlide(id);
+      setSlides(prev => prev.filter(s => s.id !== id));
+      toast.success("Slide deleted");
+    } catch { toast.error("Failed"); }
+  };
+
+  const inputCls = "w-full bg-secondary text-foreground text-xs px-3 py-2 rounded border border-border focus:outline-none focus:ring-1 focus:ring-primary";
+
+  return (
+    <div className="space-y-4 max-w-2xl">
+      <h2 className="text-foreground text-sm font-bold">Music Page Hero Slides</h2>
+
+      <div className="bg-card border border-border rounded-lg p-4">
+        <h3 className="text-foreground text-xs font-bold mb-3">Add Slide</h3>
+        <form className="space-y-3" onSubmit={handleAdd}>
+          <div><label className="text-foreground text-[11px] font-semibold mb-1 block">Title</label><input className={inputCls} value={sTitle} onChange={e => setSTitle(e.target.value)} placeholder="Slide title (optional)" /></div>
+          <div><label className="text-foreground text-[11px] font-semibold mb-1 block">Image URL *</label><input className={inputCls} value={sImage} onChange={e => setSImage(e.target.value)} placeholder="https://..." /></div>
+          <div><label className="text-foreground text-[11px] font-semibold mb-1 block">Link URL</label><input className={inputCls} value={sLink} onChange={e => setSLink(e.target.value)} placeholder="/music/abc or https://..." /></div>
+          <div><label className="text-foreground text-[11px] font-semibold mb-1 block">Description</label><input className={inputCls} value={sDesc} onChange={e => setSDesc(e.target.value)} placeholder="Short description (optional)" /></div>
+          <button type="submit" disabled={uploading} className="bg-primary text-primary-foreground px-6 py-2 rounded text-xs font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1.5">
+            {uploading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Adding...</> : <><Plus className="w-3.5 h-3.5" /> Add Slide</>}
+          </button>
+        </form>
+      </div>
+
+      <div className="bg-card border border-border rounded-lg p-4">
+        <h3 className="text-foreground text-xs font-bold mb-3">Current Slides ({slides.length})</h3>
+        {loading ? <p className="text-muted-foreground text-[10px]">Loading...</p> : slides.length === 0 ? (
+          <p className="text-muted-foreground text-[10px]">No slides yet. Add one above.</p>
+        ) : (
+          <div className="grid gap-2">
+            {slides.map(s => (
+              <div key={s.id} className="flex items-center gap-3 bg-secondary rounded p-2">
+                <img src={s.imageUrl} alt={s.title} className="w-24 h-14 object-cover rounded flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-foreground text-[11px] font-bold truncate">{s.title || "Untitled"}</h4>
+                  {s.description && <p className="text-muted-foreground text-[9px] truncate">{s.description}</p>}
+                  {s.linkUrl && <p className="text-primary text-[9px] truncate">{s.linkUrl}</p>}
+                </div>
+                <button onClick={() => handleDelete(s.id)} className="text-destructive hover:text-destructive/80 p-1 flex-shrink-0">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
