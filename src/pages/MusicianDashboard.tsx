@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   LayoutDashboard, Upload, Music, List, Wallet, ArrowDownToLine,
   Receipt, Download, ChevronLeft, Plus, Edit2, Check, X,
-  DollarSign, BarChart3, Play, Trash2, Loader2, FileVideo, Image
+  DollarSign, BarChart3, Play, Trash2, Loader2, Youtube
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -12,7 +12,18 @@ import { useMusicianVideos } from "@/hooks/useFirestore";
 import { addMusicVideo, deleteMusicVideo, updateMusicVideo } from "@/lib/firestore";
 import { sendWithdrawal, formatPhone } from "@/lib/payments";
 import { subscribeCreatorEarning, getCreatorTransactions, recordWithdrawal, getOrCreateEarning, CreatorEarning, EarningTransaction } from "@/lib/earnings";
-import { uploadToR2, formatFileSize, R2UploadProgress } from "@/lib/r2Upload";
+
+function extractYouTubeId(input: string): string | null {
+  const dlMatch = input.match(/videoId=([a-zA-Z0-9_-]+)/);
+  if (dlMatch) return dlMatch[1];
+  const watchMatch = input.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (watchMatch) return watchMatch[1];
+  const shortMatch = input.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (shortMatch) return shortMatch[1];
+  const otherMatch = input.match(/\/(?:shorts|embed)\/([a-zA-Z0-9_-]{11})/);
+  if (otherMatch) return otherMatch[1];
+  return null;
+}
 
 const sidebarItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -35,14 +46,8 @@ const MusicianDashboard = () => {
   const [vYear, setVYear] = useState("");
   const [vDuration, setVDuration] = useState("");
 
-  // File uploads
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [thumbFile, setThumbFile] = useState<File | null>(null);
-  const [videoUploadProgress, setVideoUploadProgress] = useState<R2UploadProgress | null>(null);
-  const [thumbUploadProgress, setThumbUploadProgress] = useState<R2UploadProgress | null>(null);
+  const [vYoutubeLink, setVYoutubeLink] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const videoInputRef = useRef<HTMLInputElement>(null);
-  const thumbInputRef = useRef<HTMLInputElement>(null);
 
   // Edit
   const [editId, setEditId] = useState<string | null>(null);
@@ -78,22 +83,17 @@ const MusicianDashboard = () => {
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!vTitle) { toast.error("Song title is required"); return; }
-    if (!videoFile) { toast.error("Please select a music video file"); return; }
+    if (!vYoutubeLink.trim()) { toast.error("Please enter a YouTube link"); return; }
     if (!user) return;
+
+    const videoId = extractYouTubeId(vYoutubeLink.trim());
+    if (!videoId) { toast.error("Could not extract video ID from that link"); return; }
+
+    const videoUrl = `https://embed.dlsrv.online/v1/full?videoId=${videoId}`;
+    const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
     setIsUploading(true);
     try {
-      // Upload video file
-      toast.info("Uploading video file...");
-      const videoUrl = await uploadToR2(videoFile, setVideoUploadProgress);
-
-      // Upload thumbnail if provided
-      let thumbnailUrl = "";
-      if (thumbFile) {
-        toast.info("Uploading thumbnail...");
-        thumbnailUrl = await uploadToR2(thumbFile, setThumbUploadProgress);
-      }
-
       await addMusicVideo({
         title: vTitle,
         artist: vArtist || `${user.firstName} ${user.lastName}`.trim(),
@@ -106,12 +106,7 @@ const MusicianDashboard = () => {
         musicianName: `${user.firstName} ${user.lastName}`.trim() || user.email,
         verified: true,
       });
-
-      setVTitle(""); setVArtist(""); setVYear(""); setVDuration("");
-      setVideoFile(null); setThumbFile(null);
-      setVideoUploadProgress(null); setThumbUploadProgress(null);
-      if (videoInputRef.current) videoInputRef.current.value = "";
-      if (thumbInputRef.current) thumbInputRef.current.value = "";
+      setVTitle(""); setVArtist(""); setVYear(""); setVDuration(""); setVYoutubeLink("");
       toast.success("Music video uploaded successfully!");
     } catch (err: any) {
       toast.error("Upload failed: " + (err.message || "Unknown error"));
@@ -270,108 +265,29 @@ const MusicianDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Music Video File Upload */}
+                  {/* YouTube Link */}
                   <div>
-                    <label className="text-foreground text-[11px] font-semibold mb-1 block">Music Video File * (max 200MB)</label>
-                    <div
-                      className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                      onClick={() => videoInputRef.current?.click()}
-                    >
+                    <label className="text-foreground text-[11px] font-semibold mb-1 block">YouTube Link *</label>
+                    <div className="relative">
+                      <Youtube className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-red-500" />
                       <input
-                        ref={videoInputRef}
-                        type="file"
-                        accept="video/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) {
-                            if (f.size > 200 * 1024 * 1024) {
-                              toast.error("Video file must be under 200MB");
-                              return;
-                            }
-                            setVideoFile(f);
-                          }
-                        }}
+                        className={`${inputCls} pl-8`}
+                        placeholder="https://youtu.be/... or https://youtube.com/watch?v=..."
+                        value={vYoutubeLink}
+                        onChange={e => setVYoutubeLink(e.target.value)}
                       />
-                      {videoFile ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <FileVideo className="w-5 h-5 text-primary" />
-                          <div className="text-left">
-                            <p className="text-foreground text-xs font-semibold truncate max-w-[200px]">{videoFile.name}</p>
-                            <p className="text-muted-foreground text-[10px]">{formatFileSize(videoFile.size)}</p>
-                          </div>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setVideoFile(null); if (videoInputRef.current) videoInputRef.current.value = ""; }} className="text-muted-foreground hover:text-destructive">
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div>
-                          <FileVideo className="w-8 h-8 mx-auto text-muted-foreground mb-1" />
-                          <p className="text-muted-foreground text-[11px]">Click to select video file</p>
-                          <p className="text-muted-foreground text-[9px]">MP4, MOV, AVI, MKV • Max 200MB</p>
-                        </div>
-                      )}
                     </div>
-                    {videoUploadProgress && isUploading && (
-                      <div className="mt-2">
-                        <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                          <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${videoUploadProgress.percent}%` }} />
+                    {vYoutubeLink && (() => {
+                      const id = extractYouTubeId(vYoutubeLink);
+                      if (!id) return <p className="text-destructive text-[9px] mt-1">Could not detect video ID — check the link</p>;
+                      return (
+                        <div className="mt-2 flex items-center gap-2">
+                          <img src={`https://img.youtube.com/vi/${id}/mqdefault.jpg`} className="w-20 h-12 rounded object-cover border border-border" alt="thumb" />
+                          <p className="text-green-400 text-[9px]">Video ID: {id} ✓</p>
                         </div>
-                        <p className="text-[9px] text-muted-foreground mt-0.5">Video: {videoUploadProgress.percent}% • {formatFileSize(videoUploadProgress.loaded)} / {formatFileSize(videoUploadProgress.total)}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Thumbnail File Upload */}
-                  <div>
-                    <label className="text-foreground text-[11px] font-semibold mb-1 block">Thumbnail Image (optional)</label>
-                    <div
-                      className="border-2 border-dashed border-border rounded-lg p-3 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                      onClick={() => thumbInputRef.current?.click()}
-                    >
-                      <input
-                        ref={thumbInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) {
-                            if (f.size > 10 * 1024 * 1024) {
-                              toast.error("Thumbnail must be under 10MB");
-                              return;
-                            }
-                            setThumbFile(f);
-                          }
-                        }}
-                      />
-                      {thumbFile ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <Image className="w-5 h-5 text-primary" />
-                          <div className="text-left">
-                            <p className="text-foreground text-xs font-semibold truncate max-w-[200px]">{thumbFile.name}</p>
-                            <p className="text-muted-foreground text-[10px]">{formatFileSize(thumbFile.size)}</p>
-                          </div>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setThumbFile(null); if (thumbInputRef.current) thumbInputRef.current.value = ""; }} className="text-muted-foreground hover:text-destructive">
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div>
-                          <Image className="w-6 h-6 mx-auto text-muted-foreground mb-1" />
-                          <p className="text-muted-foreground text-[10px]">Click to select thumbnail</p>
-                          <p className="text-muted-foreground text-[9px]">JPG, PNG, WebP</p>
-                        </div>
-                      )}
-                    </div>
-                    {thumbUploadProgress && isUploading && (
-                      <div className="mt-2">
-                        <div className="w-full bg-secondary rounded-full h-1.5 overflow-hidden">
-                          <div className="bg-accent h-1.5 rounded-full transition-all" style={{ width: `${thumbUploadProgress.percent}%` }} />
-                        </div>
-                        <p className="text-[9px] text-muted-foreground mt-0.5">Thumbnail: {thumbUploadProgress.percent}%</p>
-                      </div>
-                    )}
+                      );
+                    })()}
+                    <p className="text-muted-foreground text-[9px] mt-1">Paste any YouTube share link. Thumbnail is auto-fetched.</p>
                   </div>
 
                   <button

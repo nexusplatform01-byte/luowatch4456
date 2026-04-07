@@ -17,7 +17,20 @@ const fmt = (s: number) => {
   return `${m}:${String(sec).padStart(2, "0")}`;
 };
 
-const MusicVideoPlayer = ({ src, poster, title, artist }: MusicVideoPlayerProps) => {
+const EmbedPlayer = ({ src, title }: { src: string; title?: string }) => (
+  <div className="relative w-full h-full bg-black">
+    <iframe
+      src={src}
+      className="w-full h-full border-0"
+      allowFullScreen
+      allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+      title={title || "Music Video"}
+      referrerPolicy="no-referrer-when-downgrade"
+    />
+  </div>
+);
+
+const NativePlayer = ({ src, poster, title, artist }: MusicVideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const seekBarRef = useRef<HTMLDivElement>(null);
@@ -268,6 +281,13 @@ const MusicVideoPlayer = ({ src, poster, title, artist }: MusicVideoPlayerProps)
       </div>
     </div>
   );
+};
+
+const MusicVideoPlayer = (props: MusicVideoPlayerProps) => {
+  if (props.src.startsWith("https://embed.dlsrv.online")) {
+    return <EmbedPlayer src={props.src} title={props.title} />;
+  }
+  return <NativePlayer {...props} />;
 };
 
 export default MusicVideoPlayer;

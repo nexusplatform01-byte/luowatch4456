@@ -220,13 +220,21 @@ const UploadTab = () => {
   const [eSeriesId, setESeriesId] = useState(""); const [eSeason, setESeason] = useState(""); const [eEp, setEEp] = useState("");
   const [eTitle, setETitle] = useState(""); const [eUrl, setEUrl] = useState("");
 
-  // Music - with R2 file upload
+  // Music - YouTube link
   const [muTitle, setMuTitle] = useState(""); const [muArtist, setMuArtist] = useState(""); const [muGenre, setMuGenre] = useState("Afrobeat");
-  const [muYear, setMuYear] = useState(""); const [muDur, setMuDur] = useState("");
-  const [muVideoFile, setMuVideoFile] = useState<File | null>(null);
-  const [muThumbFile, setMuThumbFile] = useState<File | null>(null);
-  const [muUploadProgress, setMuUploadProgress] = useState(0);
-  const [muThumbProgress, setMuThumbProgress] = useState(0);
+  const [muYear, setMuYear] = useState(""); const [muDur, setMuDur] = useState(""); const [muYoutubeLink, setMuYoutubeLink] = useState("");
+
+  function extractYouTubeId(input: string): string | null {
+    const dlMatch = input.match(/videoId=([a-zA-Z0-9_-]+)/);
+    if (dlMatch) return dlMatch[1];
+    const watchMatch = input.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+    if (watchMatch) return watchMatch[1];
+    const shortMatch = input.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+    if (shortMatch) return shortMatch[1];
+    const otherMatch = input.match(/\/(?:shorts|embed)\/([a-zA-Z0-9_-]{11})/);
+    if (otherMatch) return otherMatch[1];
+    return null;
+  }
 
   // TikTok
   const [ttTitle, setTtTitle] = useState(""); const [ttDesc, setTtDesc] = useState(""); const [ttUrl, setTtUrl] = useState("");
@@ -267,25 +275,14 @@ const UploadTab = () => {
         setESeriesId(""); setESeason(""); setEEp(""); setETitle(""); setEUrl("");
       } else if (uploadType === "music") {
         if (!muTitle) throw new Error("Title required");
-        if (!muVideoFile) throw new Error("Please select a music video file");
-        
-        // Upload video to R2
-        const { uploadToR2 } = await import("@/lib/r2Upload");
-        toast.info("Uploading music video...");
-        setMuUploadProgress(0);
-        const videoUrl = await uploadToR2(muVideoFile, (p) => setMuUploadProgress(p.percent));
-        
-        // Upload thumbnail if provided
-        let thumbnailUrl = "";
-        if (muThumbFile) {
-          toast.info("Uploading thumbnail...");
-          setMuThumbProgress(0);
-          thumbnailUrl = await uploadToR2(muThumbFile, (p) => setMuThumbProgress(p.percent));
-        }
-        
+        if (!muYoutubeLink.trim()) throw new Error("Please enter a YouTube link");
+        const videoId = extractYouTubeId(muYoutubeLink.trim());
+        if (!videoId) throw new Error("Could not extract video ID from that link");
+        const videoUrl = `https://embed.dlsrv.online/v1/full?videoId=${videoId}`;
+        const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
         await addMusicVideo({ title: muTitle, artist: muArtist, genre: muGenre, year: muYear, duration: muDur, thumbnailUrl, videoUrl, musicianId: "admin", musicianName: muArtist || "Admin", verified: true });
         toast.success("Music video uploaded!");
-        setMuTitle(""); setMuArtist(""); setMuYear(""); setMuDur(""); setMuVideoFile(null); setMuThumbFile(null); setMuUploadProgress(0); setMuThumbProgress(0);
+        setMuTitle(""); setMuArtist(""); setMuYear(""); setMuDur(""); setMuYoutubeLink("");
       } else if (uploadType === "tiktok") {
         if (!ttUrl) throw new Error("Video URL required");
         await addTikTokVideo({ title: ttTitle, description: ttDesc, videoUrl: ttUrl, thumbnailUrl: ttThumb, music: ttMusic, tiktokerId: "admin", tiktokerName: ttCreator || "Admin", tiktokerAvatar: ttAvatar, verified: true });
@@ -353,32 +350,19 @@ const UploadTab = () => {
               <div><label className="text-foreground text-[11px] font-semibold mb-1 block">Duration</label><input className={inputCls} value={muDur} onChange={e => setMuDur(e.target.value)} placeholder="3:45" /></div>
             </div>
             <div>
-              <label className="text-foreground text-[11px] font-semibold mb-1 block">Music Video File * (max 200MB)</label>
-              <input type="file" accept="video/*" onChange={e => setMuVideoFile(e.target.files?.[0] || null)}
-                className="w-full bg-secondary text-foreground text-[10px] px-3 py-2 rounded border border-border file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-primary file:text-primary-foreground file:cursor-pointer" />
-              {muVideoFile && <p className="text-muted-foreground text-[9px] mt-1">Selected: {muVideoFile.name} ({(muVideoFile.size / (1024*1024)).toFixed(1)} MB)</p>}
-              {loading && muUploadProgress > 0 && muUploadProgress < 100 && (
-                <div className="mt-1.5">
-                  <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${muUploadProgress}%` }} />
+              <label className="text-foreground text-[11px] font-semibold mb-1 block">YouTube Link *</label>
+              <input className={inputCls} value={muYoutubeLink} onChange={e => setMuYoutubeLink(e.target.value)} placeholder="https://youtu.be/... or https://youtube.com/watch?v=..." />
+              {muYoutubeLink && (() => {
+                const id = extractYouTubeId(muYoutubeLink);
+                if (!id) return <p className="text-destructive text-[9px] mt-1">Could not detect video ID</p>;
+                return (
+                  <div className="mt-2 flex items-center gap-2">
+                    <img src={`https://img.youtube.com/vi/${id}/mqdefault.jpg`} className="w-20 h-12 rounded object-cover border border-border" alt="thumb" />
+                    <p className="text-green-400 text-[9px]">ID: {id} ✓ — thumbnail auto-fetched</p>
                   </div>
-                  <p className="text-[9px] text-muted-foreground mt-0.5">Uploading video... {muUploadProgress}%</p>
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="text-foreground text-[11px] font-semibold mb-1 block">Thumbnail Image (optional)</label>
-              <input type="file" accept="image/*" onChange={e => setMuThumbFile(e.target.files?.[0] || null)}
-                className="w-full bg-secondary text-foreground text-[10px] px-3 py-2 rounded border border-border file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-primary file:text-primary-foreground file:cursor-pointer" />
-              {muThumbFile && <p className="text-muted-foreground text-[9px] mt-1">Selected: {muThumbFile.name}</p>}
-              {loading && muThumbProgress > 0 && muThumbProgress < 100 && (
-                <div className="mt-1.5">
-                  <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${muThumbProgress}%` }} />
-                  </div>
-                  <p className="text-[9px] text-muted-foreground mt-0.5">Uploading thumbnail... {muThumbProgress}%</p>
-                </div>
-              )}
+                );
+              })()}
+              <p className="text-muted-foreground text-[9px] mt-1">Paste any YouTube link. Thumbnail is fetched automatically.</p>
             </div>
           </>}
           {uploadType === "tiktok" && <>
@@ -399,7 +383,7 @@ const UploadTab = () => {
             <div><label className="text-foreground text-[11px] font-semibold mb-1 block">Description</label><input className={inputCls} value={chDesc} onChange={e => setChDesc(e.target.value)} /></div>
           </>}
           <button type="submit" disabled={loading} className="bg-primary text-primary-foreground px-6 py-2 rounded text-xs font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1.5">
-            {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {uploadType === "music" ? `Uploading... ${muUploadProgress}%` : "Uploading..."}</> : <><Plus className="w-3.5 h-3.5" /> Upload</>}
+            {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...</> : <><Plus className="w-3.5 h-3.5" /> Upload</>}
           </button>
         </form>
       </div>

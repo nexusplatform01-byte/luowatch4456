@@ -1,10 +1,9 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Share2, Download, Loader2 } from "lucide-react";
+import { Share2, Download, X, Loader2 } from "lucide-react";
 import { useMusicById, useMusicVideos } from "@/hooks/useFirestore";
 import { incrementMusicPlays, logActivity } from "@/lib/firestore";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription } from "@/contexts/SubscriptionContext";
 import { creditMusicianDownload } from "@/lib/earnings";
 import CommentSection from "@/components/CommentSection";
 import MusicVideoPlayer from "@/components/MusicVideoPlayer";
@@ -12,18 +11,13 @@ import { toast } from "sonner";
 import { updateDoc, doc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-const INTERNAL_ROLES = ["vj", "admin", "musician", "tiktoker"];
-
 const MusicPlayerPage = () => {
   const { id } = useParams();
-  // useMusicById now reads synchronously from global cache if warm
   const { music: video } = useMusicById(id || "");
-  // useMusicVideos also reads from the same warm cache
   const { music: allMusic } = useMusicVideos();
   const { user, setShowAuthModal, setAuthModalTab } = useAuth();
-  const { hasContentAccess, openSubModal } = useSubscription();
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
 
   useEffect(() => {
     if (!id || !video) return;
@@ -52,52 +46,34 @@ const MusicPlayerPage = () => {
     }
   };
 
+  const getDownloadEmbedUrl = () => {
+    if (!video?.videoUrl) return "";
+    if (video.videoUrl.includes("embed.dlsrv.online")) return video.videoUrl;
+    const videoId = video.videoUrl.match(/videoId=([a-zA-Z0-9_-]+)/)?.[1];
+    return videoId ? `https://embed.dlsrv.online/v1/full?videoId=${videoId}` : video.videoUrl;
+  };
+
   const handleDownload = async () => {
     if (!video) return;
-    if (!user) { setAuthModalTab("login"); setShowAuthModal(true); return; }
-    if (!hasContentAccess) { openSubModal("content"); return; }
+    if (!user) {
+      setAuthModalTab("login");
+      setShowAuthModal(true);
+      toast.error("Please log in to download");
+      return;
+    }
     if (!video.videoUrl) { toast.error("No download available"); return; }
-
-    const userRole = user.role?.toLowerCase() || "";
-    const isCreatorOrAdmin = INTERNAL_ROLES.includes(userRole);
-
-    if (!isCreatorOrAdmin) {
-      try {
-        // Count download and credit musician earnings for ALL subscribers (paid + admin-activated)
-        await updateDoc(doc(db, "music", id!), { downloads: increment(1) });
-        if (video.musicianId && video.musicianId !== "admin") {
-          creditMusicianDownload(
-            video.musicianId, video.musicianName || video.artist,
-            id!, video.title, user.id,
-            `${user.firstName} ${user.lastName}`.trim() || user.email
-          ).catch(() => {});
-        }
-      } catch {}
-    }
-
-    logActivity({ type: "download", contentType: "music", contentId: id!, contentTitle: video.title, userId: user.id, userName: `${user.firstName} ${user.lastName}`.trim() || user.email }).catch(() => {});
-
-    setDownloading(true);
-    toast.info("Starting download...");
     try {
-      const response = await fetch(video.videoUrl);
-      if (!response.ok) throw new Error("Network error");
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = `${video.title}.mp4`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-      toast.success("Download started!");
-    } catch {
-      window.open(video.videoUrl, "_blank");
-      toast.info("Opened in new tab — use your browser's save option.");
-    } finally {
-      setDownloading(false);
-    }
+      await updateDoc(doc(db, "musicVideos", id!), { downloads: increment(1) });
+      if (video.musicianId && video.musicianId !== "admin") {
+        creditMusicianDownload(
+          video.musicianId, video.musicianName || video.artist,
+          id!, video.title, user.id,
+          `${user.firstName} ${user.lastName}`.trim() || user.email
+        ).catch(() => {});
+      }
+      logActivity({ type: "download", contentType: "music", contentId: id!, contentTitle: video.title, userId: user.id, userName: `${user.firstName} ${user.lastName}`.trim() || user.email }).catch(() => {});
+    } catch {}
+    setShowDownloadModal(true);
   };
 
   return (
@@ -106,7 +82,6 @@ const MusicPlayerPage = () => {
         <div className="flex gap-4">
 
           <main className="flex-1 min-w-0">
-            {/* Player — always rendered, spinner inside if no URL yet */}
             <div className="w-full aspect-video bg-black rounded-xl overflow-hidden mb-3 shadow-lg">
               {video?.videoUrl ? (
                 <MusicVideoPlayer
@@ -124,14 +99,12 @@ const MusicPlayerPage = () => {
               )}
             </div>
 
-            {/* Title */}
             {video ? (
               <h1 className="text-foreground text-sm font-bold mb-2 leading-tight">{video.title}</h1>
             ) : (
               <div className="h-4 w-2/3 bg-secondary rounded animate-pulse mb-2" />
             )}
 
-            {/* Artist + actions */}
             <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
               {video ? (
                 <div className="flex items-center gap-2">
@@ -159,11 +132,9 @@ const MusicPlayerPage = () => {
                 </button>
                 <button
                   onClick={handleDownload}
-                  disabled={downloading}
-                  className="flex items-center gap-1 bg-secondary rounded-full px-3 py-1.5 text-[10px] text-foreground hover:bg-muted transition-colors disabled:opacity-60"
+                  className="flex items-center gap-1 bg-primary rounded-full px-3 py-1.5 text-[10px] text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
-                  {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                  {downloading ? "Downloading..." : "Download"}
+                  <Download className="w-3.5 h-3.5" /> Download Free
                 </button>
               </div>
             </div>
@@ -181,7 +152,6 @@ const MusicPlayerPage = () => {
             <CommentSection contentId={id || ""} contentType="music" />
           </main>
 
-          {/* Related sidebar */}
           <aside className="w-72 flex-shrink-0 space-y-2 hidden md:block">
             {relatedVideos.map((v) => (
               <Link to={`/music/${v.id}`} key={v.id} className="flex gap-2 group">
@@ -202,6 +172,33 @@ const MusicPlayerPage = () => {
 
         </div>
       </div>
+
+      {/* Download Modal */}
+      {showDownloadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setShowDownloadModal(false)}>
+          <div className="relative bg-background rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <div>
+                <h2 className="text-foreground text-sm font-bold">{video?.title}</h2>
+                <p className="text-muted-foreground text-[10px]">Select quality and format to download</p>
+              </div>
+              <button onClick={() => setShowDownloadModal(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="w-full" style={{ height: "420px" }}>
+              <iframe
+                src={getDownloadEmbedUrl()}
+                className="w-full h-full border-0"
+                allowFullScreen
+                allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+                title="Download"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
