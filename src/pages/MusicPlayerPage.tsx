@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { creditMusicianDownload } from "@/lib/earnings";
 import CommentSection from "@/components/CommentSection";
 import MusicVideoPlayer from "@/components/MusicVideoPlayer";
+import SEOHead, { buildMusicStructuredData } from "@/components/SEOHead";
 import { toast } from "sonner";
 import { updateDoc, doc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -76,9 +77,23 @@ const MusicPlayerPage = () => {
     setShowDownloadModal(true);
   };
 
+  const artistName = video?.musicianName || video?.artist || "LUO WATCH";
+
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
-      <div className="max-w-7xl mx-auto px-3 py-3">
+      {video && (
+        <SEOHead
+          title={`${video.title} — ${artistName}`}
+          description={`Watch and download ${video.title} by ${artistName} for free on LUO WATCH. Stream Luo music videos online.`}
+          image={video.thumbnailUrl}
+          url={`/music/${id}`}
+          type="music.song"
+          artist={artistName}
+          keywords={`${video.title}, ${artistName}, Luo music, Luo music video, Uganda music, download ${video.title}`}
+          structuredData={buildMusicStructuredData(video)}
+        />
+      )}
+      <div className="w-full px-4 md:px-6 xl:px-10 py-3">
         <div className="flex gap-4">
 
           <main className="flex-1 min-w-0">

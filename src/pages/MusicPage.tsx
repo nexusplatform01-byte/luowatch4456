@@ -52,7 +52,7 @@ const MusicPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
-      <div className="max-w-7xl mx-auto px-3 py-3">
+      <div className="w-full px-4 md:px-6 xl:px-10 py-3">
         <MusicHeroSlider />
         <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
           {musicCategories.map((cat) => (

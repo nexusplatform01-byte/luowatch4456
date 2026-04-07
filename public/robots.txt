@@ -1,5 +1,7 @@
 User-agent: Googlebot
 Allow: /
+Allow: /music/
+Allow: /movie/
 
 User-agent: Bingbot
 Allow: /
@@ -12,3 +14,17 @@ Allow: /
 
 User-agent: *
 Allow: /
+Allow: /music/
+Allow: /movie/
+Allow: /live-tv/
+Allow: /music
+Allow: /live-tv
+Allow: /games
+Allow: /tiktok
+
+Disallow: /admin
+Disallow: /vj-dashboard
+Disallow: /musician-dashboard
+Disallow: /tiktoker-dashboard
+
+Sitemap: https://luowatch.replit.app/sitemap.xml

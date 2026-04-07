@@ -37,7 +37,7 @@ const GamesPage = () => {
       )}
 
       <div className="min-h-screen bg-background pb-16 md:pb-0">
-        <div className="max-w-7xl mx-auto px-3 py-3">
+        <div className="w-full px-4 md:px-6 xl:px-10 py-3">
           <h1 className="text-foreground text-base font-bold mb-4 flex items-center gap-2">
             <Gamepad2 className="w-4 h-4 text-primary" /> Games
           </h1>

@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useState, useEffect } from "react";
 import { Share2, Download, Eye, Lock, Crown, LogIn } from "lucide-react";
+import SEOHead, { buildMovieStructuredData } from "@/components/SEOHead";
 import { useMovie, useEpisodes, useMovies } from "@/hooks/useFirestore";
 import { incrementMovieViews, incrementMovieDownloads, logActivity, getMovieById } from "@/lib/firestore";
 import { useAuth } from "@/contexts/AuthContext";
@@ -139,7 +140,18 @@ const MoviePlayerPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
-      <div className="max-w-7xl mx-auto px-3 py-3">
+      {movie && (
+        <SEOHead
+          title={currentEpTitle}
+          description={movie.description || `Watch ${movie.title} on LUO WATCH — ${isSeries ? "Luo translated series" : "Luo translated movie"} by ${movie.vjName || "LUO WATCH VJ"}.`}
+          image={movie.thumbnailUrl}
+          url={`/movie/${id}`}
+          type={isSeries ? "video.other" : "video.movie"}
+          keywords={`${movie.title}, Luo movie, Luo translated, ${movie.vjName || ""}, Uganda movie, LUO WATCH, ${movie.genre || ""}`}
+          structuredData={buildMovieStructuredData({ ...movie, id: id! })}
+        />
+      )}
+      <div className="w-full px-4 md:px-6 xl:px-10 py-3">
         <div className="flex gap-4">
           <main className="flex-1 min-w-0">
             {/* Video Player */}
