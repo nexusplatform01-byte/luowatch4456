@@ -210,26 +210,39 @@ const VJDashboard = () => {
   const managingSeriesEpisodes = episodes.filter(ep => ep.movieId === managingSeriesId);
   const inputCls = "w-full bg-secondary text-foreground text-xs px-3 py-2 rounded border border-border focus:outline-none focus:ring-1 focus:ring-primary";
 
+  const calcWithdrawFee = (amount: number): number => {
+    if (amount <= 0) return 0;
+    if (amount <= 5000) return Math.round(amount * 0.20);
+    return Math.round(amount * 0.10);
+  };
+
+  const wAmountNum = Number(wAmount) || 0;
+  const wFee = calcWithdrawFee(wAmountNum);
+  const wNet = wAmountNum - wFee;
+
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isWithdrawWindow) { toast.error("Withdrawals only on Saturday 12 PM – Midnight"); return; }
-    if (!wAmount || Number(wAmount) <= 0) { toast.error("Enter a valid amount"); return; }
-    if (Number(wAmount) > balance) { toast.error("Cannot withdraw more than your balance"); return; }
+    if (!wAmount || wAmountNum <= 0) { toast.error("Enter a valid amount"); return; }
+    if (wAmountNum < 1000) { toast.error("Minimum withdrawal is UGX 1,000"); return; }
+    if (wAmountNum > balance) { toast.error("Insufficient balance"); return; }
     if (!wPhone) { toast.error("Enter phone number"); return; }
     if (!user) return;
     setWithdrawing(true);
     try {
-      const res = await sendWithdrawal(formatPhone(wPhone), Number(wAmount), "VJ earnings withdrawal");
+      const res = await sendWithdrawal(formatPhone(wPhone), wNet, "VJ earnings withdrawal");
       if (res.success) {
-        await recordWithdrawal(user.id, `${user.firstName} ${user.lastName}`.trim() || user.email, Number(wAmount), formatPhone(wPhone), "completed");
-        toast.success(`Withdrawal of ${formatUGX(Number(wAmount))} initiated!`);
+        await recordWithdrawal(user.id, `${user.firstName} ${user.lastName}`.trim() || user.email, wAmountNum, formatPhone(wPhone), "completed");
+        toast.success(`Withdrawal successful! ${formatUGX(wNet)} sent to your phone.`);
         setWAmount(""); setWPhone("");
-        // Refresh transactions
         getCreatorTransactions(user.id).then(setTransactions).catch(() => {});
       } else {
+        await recordWithdrawal(user.id, `${user.firstName} ${user.lastName}`.trim() || user.email, wAmountNum, formatPhone(wPhone), "failed");
         toast.error(res.message || "Withdrawal failed");
       }
-    } catch { toast.error("Withdrawal failed"); }
+    } catch {
+      toast.error("Withdrawal failed");
+    }
     setWithdrawing(false);
   };
 
@@ -635,7 +648,13 @@ const VJDashboard = () => {
               )}
               <div className="bg-card border border-border rounded-lg p-3 max-w-sm mb-4">
                 <form className="space-y-2" onSubmit={handleWithdraw}>
-                  <div><label className="text-foreground text-[10px] font-semibold mb-0.5 block">Amount (UGX)</label><input value={wAmount} onChange={e => setWAmount(e.target.value)} className={inputCls} placeholder="Enter amount" type="number" disabled={!isWithdrawWindow} /></div>
+                  <div><label className="text-foreground text-[10px] font-semibold mb-0.5 block">Amount to Withdraw (UGX)</label><input value={wAmount} onChange={e => setWAmount(e.target.value)} className={inputCls} placeholder="Min UGX 1,000" type="number" disabled={!isWithdrawWindow} /></div>
+                  {wAmountNum >= 1000 && (
+                    <div className="bg-secondary rounded p-2 space-y-0.5">
+                      <div className="flex justify-between text-[9px]"><span className="text-muted-foreground">Withdrawal fee ({wAmountNum <= 5000 ? "20%" : "10%"})</span><span className="text-destructive font-bold">- {formatUGX(wFee)}</span></div>
+                      <div className="flex justify-between text-[9px] border-t border-border pt-0.5"><span className="text-muted-foreground font-bold">You will receive</span><span className="text-green-400 font-bold">{formatUGX(wNet)}</span></div>
+                    </div>
+                  )}
                   <div><label className="text-foreground text-[10px] font-semibold mb-0.5 block">Mobile Money Number</label><input value={wPhone} onChange={e => setWPhone(e.target.value)} className={inputCls} placeholder="0770 000 000" disabled={!isWithdrawWindow} /></div>
                   <button type="submit" disabled={!isWithdrawWindow || balance <= 0 || withdrawing} className="bg-primary text-primary-foreground px-4 py-1.5 rounded text-[10px] font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1">
                     {withdrawing ? <><Loader2 className="w-3 h-3 animate-spin" /> Processing...</> : "Withdraw"}
@@ -675,6 +694,8 @@ const VJDashboard = () => {
                   <li>• Each confirmed download by a paying subscriber = <span className="text-primary font-bold">UGX 250</span></li>
                   <li>• Downloads by VJs, musicians, admins, or admin-activated users do NOT count</li>
                   <li>• Withdrawals available every Saturday 12 PM – Midnight</li>
+                  <li>• Minimum withdrawal: <span className="text-primary font-bold">UGX 1,000</span></li>
+                  <li>• Withdrawal fee: <span className="text-primary font-bold">20%</span> for UGX 1,000–5,000 | <span className="text-primary font-bold">10%</span> for above UGX 5,000</li>
                   <li>• You cannot withdraw more than your available balance</li>
                 </ul>
               </div>

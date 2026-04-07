@@ -128,21 +128,35 @@ const MusicianDashboard = () => {
     try { await updateMusicVideo(id, editData); setEditId(null); toast.success("Updated!"); } catch { toast.error("Failed"); }
   };
 
+  const calcWithdrawFee = (amount: number): number => {
+    if (amount <= 0) return 0;
+    if (amount <= 5000) return Math.round(amount * 0.20);
+    return Math.round(amount * 0.10);
+  };
+
+  const wAmountNum = Number(wAmount) || 0;
+  const wFee = calcWithdrawFee(wAmountNum);
+  const wNet = wAmountNum - wFee;
+
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isWithdrawWindow) { toast.error("Withdrawals only on Saturdays 12PM - Midnight"); return; }
-    if (!wPhone || !wAmount || Number(wAmount) <= 0) { toast.error("Invalid amount or phone"); return; }
-    if (Number(wAmount) > balance) { toast.error("Cannot withdraw more than your balance"); return; }
+    if (!wPhone || !wAmount || wAmountNum <= 0) { toast.error("Invalid amount or phone"); return; }
+    if (wAmountNum < 1000) { toast.error("Minimum withdrawal is UGX 1,000"); return; }
+    if (wAmountNum > balance) { toast.error("Insufficient balance"); return; }
     if (!user) return;
     setWithdrawing(true);
     try {
-      const res = await sendWithdrawal(formatPhone(wPhone), Number(wAmount), "Musician earnings withdrawal");
+      const res = await sendWithdrawal(formatPhone(wPhone), wNet, "Musician earnings withdrawal");
       if (res.success) {
-        await recordWithdrawal(user.id, `${user.firstName} ${user.lastName}`.trim() || user.email, Number(wAmount), formatPhone(wPhone), "completed");
-        toast.success("Withdrawal initiated!");
+        await recordWithdrawal(user.id, `${user.firstName} ${user.lastName}`.trim() || user.email, wAmountNum, formatPhone(wPhone), "completed");
+        toast.success(`Withdrawal successful! ${formatUGX(wNet)} sent to your phone.`);
         setWPhone(""); setWAmount("");
         getCreatorTransactions(user.id).then(setTransactions).catch(() => {});
-      } else toast.error(res.message || "Failed");
+      } else {
+        await recordWithdrawal(user.id, `${user.firstName} ${user.lastName}`.trim() || user.email, wAmountNum, formatPhone(wPhone), "failed");
+        toast.error(res.message || "Failed");
+      }
     } catch { toast.error("Withdrawal failed"); }
     setWithdrawing(false);
   };
@@ -424,7 +438,13 @@ const MusicianDashboard = () => {
                 <h3 className="text-foreground text-xs font-bold mb-2">Withdraw to Mobile Money</h3>
                 {!isWithdrawWindow && <p className="text-destructive text-[10px] mb-2">⚠ Withdrawals open Saturdays 12PM - Midnight</p>}
                 <form className="space-y-3" onSubmit={handleWithdraw}>
-                  <div><label className="text-foreground text-[11px] font-semibold mb-1 block">Amount (UGX)</label><input className={inputCls} value={wAmount} onChange={e => setWAmount(e.target.value)} placeholder="Enter amount" type="number" /></div>
+                  <div><label className="text-foreground text-[11px] font-semibold mb-1 block">Amount to Withdraw (UGX)</label><input className={inputCls} value={wAmount} onChange={e => setWAmount(e.target.value)} placeholder="Min UGX 1,000" type="number" /></div>
+                  {wAmountNum >= 1000 && (
+                    <div className="bg-secondary rounded p-2.5 space-y-1">
+                      <div className="flex justify-between text-[10px]"><span className="text-muted-foreground">Withdrawal fee ({wAmountNum <= 5000 ? "20%" : "10%"})</span><span className="text-destructive font-bold">- {formatUGX(wFee)}</span></div>
+                      <div className="flex justify-between text-[10px] border-t border-border pt-1"><span className="text-muted-foreground font-bold">You will receive</span><span className="text-green-400 font-bold">{formatUGX(wNet)}</span></div>
+                    </div>
+                  )}
                   <div><label className="text-foreground text-[11px] font-semibold mb-1 block">Mobile Money Number</label><input className={inputCls} value={wPhone} onChange={e => setWPhone(e.target.value)} placeholder="0770 000 000" /></div>
                   <button type="submit" disabled={withdrawing || !isWithdrawWindow || balance === 0} className="bg-primary text-primary-foreground px-6 py-2 rounded text-xs font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5">
                     {withdrawing ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing...</> : <><ArrowDownToLine className="w-3.5 h-3.5" /> Withdraw</>}
@@ -450,6 +470,8 @@ const MusicianDashboard = () => {
                   <li>Only downloads by subscribed users count</li>
                   <li>Downloads by VJs, musicians, admins, and tiktokers don't count</li>
                   <li>Withdrawals available every Saturday 12PM - Midnight</li>
+                  <li>Minimum withdrawal: <span className="text-primary font-bold">UGX 1,000</span></li>
+                  <li>Withdrawal fee: <span className="text-primary font-bold">20%</span> for UGX 1,000–5,000 | <span className="text-primary font-bold">10%</span> for above UGX 5,000</li>
                 </ul>
               </div>
             </div>
