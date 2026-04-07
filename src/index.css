@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,37 +6,55 @@
 
 @layer base {
   :root {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 90%;
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 90%;
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 90%;
-    --primary: 0 72% 50%;
+    /* Apple-inspired dark theme — deep navy/black base */
+    --background: 220 27% 5%;
+    --foreground: 210 20% 95%;
+
+    --card: 220 22% 8%;
+    --card-foreground: 210 20% 95%;
+
+    --popover: 220 22% 9%;
+    --popover-foreground: 210 20% 95%;
+
+    /* Primary: Apple system blue */
+    --primary: 211 100% 55%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 90%;
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 55%;
-    --accent: 0 72% 50%;
+
+    --secondary: 220 18% 13%;
+    --secondary-foreground: 210 15% 80%;
+
+    --muted: 220 18% 13%;
+    --muted-foreground: 220 10% 50%;
+
+    /* Accent: Apple system green */
+    --accent: 142 71% 42%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 60.2%;
+
+    /* Destructive: Apple red */
+    --destructive: 4 90% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 0 72% 50%;
-    --radius: 0.25rem;
-    --badge-new: 120 60% 40%;
-    --badge-hd: 210 80% 50%;
-    --badge-featured: 0 72% 50%;
-    --sidebar-background: 0 0% 10%;
-    --sidebar-foreground: 0 0% 80%;
-    --sidebar-primary: 0 72% 50%;
+
+    --border: 220 18% 16%;
+    --input: 220 18% 12%;
+    --ring: 211 100% 55%;
+
+    /* Larger radius for Apple feel */
+    --radius: 0.75rem;
+
+    /* Badges */
+    --badge-new: 142 71% 42%;
+    --badge-hd: 211 100% 55%;
+    --badge-featured: 4 90% 58%;
+
+    /* Sidebar */
+    --sidebar-background: 220 24% 6%;
+    --sidebar-foreground: 210 15% 75%;
+    --sidebar-primary: 211 100% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 14%;
-    --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 0 0% 18%;
-    --sidebar-ring: 0 72% 50%;
+    --sidebar-accent: 220 18% 13%;
+    --sidebar-accent-foreground: 210 20% 90%;
+    --sidebar-border: 220 18% 14%;
+    --sidebar-ring: 211 100% 55%;
   }
 }
 
@@ -44,40 +62,89 @@
   * {
     @apply border-border;
   }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-background text-foreground;
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% -10%, hsl(211 100% 55% / 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 110%, hsl(142 71% 42% / 0.04) 0%, transparent 60%);
+    background-attachment: fixed;
   }
 }
 
 @layer components {
   .movie-card {
-    @apply relative overflow-hidden rounded cursor-pointer transition-transform duration-200 hover:scale-105 hover:z-10;
+    @apply relative overflow-hidden rounded-xl cursor-pointer transition-all duration-200 hover:scale-105 hover:z-10;
+    box-shadow: 0 2px 12px hsl(220 27% 5% / 0.6);
+  }
+  .movie-card:hover {
+    box-shadow: 0 8px 32px hsl(211 100% 55% / 0.15), 0 2px 12px hsl(220 27% 5% / 0.8);
   }
   .movie-badge {
-    @apply absolute top-1 left-1 px-1.5 py-0.5 text-[10px] font-bold uppercase rounded;
+    @apply absolute top-1.5 left-1.5 px-2 py-0.5 text-[9px] font-bold uppercase rounded-md tracking-wide;
+    backdrop-filter: blur(8px);
   }
   .category-link {
-    @apply text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer flex items-center gap-1.5 py-1;
+    @apply text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer flex items-center gap-1.5 py-1 font-medium;
+  }
+
+  /* Apple-style glass card */
+  .glass-card {
+    background: hsl(220 22% 8% / 0.8);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid hsl(220 18% 20% / 0.5);
+    border-radius: var(--radius);
+  }
+
+  /* Apple-style button glow */
+  .btn-primary-glow {
+    box-shadow: 0 0 0 0 hsl(211 100% 55% / 0);
+    transition: box-shadow 0.2s ease;
+  }
+  .btn-primary-glow:hover {
+    box-shadow: 0 4px 20px hsl(211 100% 55% / 0.35);
+  }
+  .btn-primary-glow:active {
+    box-shadow: 0 2px 8px hsl(211 100% 55% / 0.5);
+    transform: scale(0.98);
   }
 }
 
-/* Ultra-thin custom scrollbars */
+/* Ultra-thin Apple-style scrollbars */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
+  background: hsl(220 18% 28% / 0.5);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+  background: hsl(211 100% 55% / 0.4);
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  scrollbar-color: hsl(220 18% 28% / 0.5) transparent;
+}
+
+/* Apple-style focus ring */
+:focus-visible {
+  outline: 2px solid hsl(211 100% 55% / 0.7);
+  outline-offset: 2px;
+}
+
+/* Smooth page transitions */
+* {
+  transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
