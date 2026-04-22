@@ -35,7 +35,6 @@ const Header = () => {
               { label: "Music", path: "/music" },
               { label: "Live TV", path: "/live-tv" },
               { label: "Games", path: "/games" },
-              { label: "Acholi TikTok", path: "/tiktok" },
             ].map((item) => (
               <Link
                 key={item.path}

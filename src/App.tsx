@@ -19,7 +19,6 @@ import Index from "./pages/Index";
 import MusicPage from "./pages/MusicPage";
 import LiveTVPage from "./pages/LiveTVPage";
 import GamesPage from "./pages/GamesPage";
-import TikTokPage from "./pages/TikTokPage";
 import VJDashboard from "./pages/VJDashboard";
 import MusicianDashboard from "./pages/MusicianDashboard";
 import TikTokerDashboard from "./pages/TikTokerDashboard";
@@ -58,7 +57,6 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/music" element={<MusicPage />} />
                 <Route path="/live-tv" element={<LiveTVPage />} />
-                <Route path="/tiktok" element={<TikTokPage />} />
                 <Route path="/movie/:id" element={<MoviePlayerPage />} />
                 <Route path="/live-tv/:id" element={<TVPlayerPage />} />
                 <Route path="/games" element={<GamesPage />} />

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Film, Music, Tv, Gamepad2, Clapperboard } from "lucide-react";
+import { Film, Music, Tv, Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -7,7 +7,6 @@ const navItems = [
   { label: "Music", path: "/music", icon: Music },
   { label: "Live TV", path: "/live-tv", icon: Tv },
   { label: "Games", path: "/games", icon: Gamepad2 },
-  { label: "TikTok", path: "/tiktok", icon: Clapperboard },
 ];
 
 const MobileNav = () => {

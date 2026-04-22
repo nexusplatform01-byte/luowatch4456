@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   LayoutDashboard, Upload, Music, List, Wallet, ArrowDownToLine,
   Receipt, Download, ChevronLeft, Plus, Edit2, Check, X,
-  DollarSign, BarChart3, Play, Trash2, Loader2, Youtube
+  DollarSign, BarChart3, Play, Trash2, Loader2, Youtube, FolderOpen, Image
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -12,6 +12,8 @@ import { useMusicianVideos } from "@/hooks/useFirestore";
 import { addMusicVideo, deleteMusicVideo, updateMusicVideo } from "@/lib/firestore";
 import { sendWithdrawal, formatPhone } from "@/lib/payments";
 import { subscribeCreatorEarning, getCreatorTransactions, recordWithdrawal, getOrCreateEarning, CreatorEarning, EarningTransaction } from "@/lib/earnings";
+import { uploadToR2, formatFileSize, R2UploadProgress } from "@/lib/r2Upload";
+import { uploadToS3 } from "@/lib/s3Upload";
 
 function extractYouTubeId(input: string): string | null {
   const dlMatch = input.match(/videoId=([a-zA-Z0-9_-]+)/);
@@ -48,6 +50,15 @@ const MusicianDashboard = () => {
 
   const [vYoutubeLink, setVYoutubeLink] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+
+  // File upload mode
+  const [uploadMode, setUploadMode] = useState<"youtube" | "file">("youtube");
+  const [vVideoFile, setVVideoFile] = useState<File | null>(null);
+  const [vThumbnailFile, setVThumbnailFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<R2UploadProgress | null>(null);
+  const [uploadStep, setUploadStep] = useState("");
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const thumbInputRef = useRef<HTMLInputElement>(null);
 
   // Edit
   const [editId, setEditId] = useState<string | null>(null);
@@ -110,6 +121,54 @@ const MusicianDashboard = () => {
       toast.success("Music video uploaded successfully!");
     } catch (err: any) {
       toast.error("Upload failed: " + (err.message || "Unknown error"));
+    }
+    setIsUploading(false);
+  };
+
+  const handleFileUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!vTitle) { toast.error("Song title is required"); return; }
+    if (!vVideoFile) { toast.error("Please select a video file"); return; }
+    if (!user) return;
+
+    setIsUploading(true);
+    try {
+      let thumbnailUrl = "";
+      if (vThumbnailFile) {
+        setUploadStep("Uploading thumbnail...");
+        thumbnailUrl = await uploadToS3(vThumbnailFile, "thumbnails");
+      }
+
+      setUploadStep("Uploading video...");
+      setUploadProgress(null);
+      const videoUrl = await uploadToR2(vVideoFile, (progress) => {
+        setUploadProgress(progress);
+      });
+
+      setUploadStep("Saving...");
+      await addMusicVideo({
+        title: vTitle,
+        artist: vArtist || `${user.firstName} ${user.lastName}`.trim(),
+        genre: vGenre,
+        year: vYear,
+        duration: vDuration,
+        thumbnailUrl,
+        videoUrl,
+        musicianId: user.id,
+        musicianName: `${user.firstName} ${user.lastName}`.trim() || user.email,
+        verified: true,
+      });
+
+      setVTitle(""); setVArtist(""); setVYear(""); setVDuration("");
+      setVVideoFile(null); setVThumbnailFile(null);
+      setUploadProgress(null); setUploadStep("");
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      if (thumbInputRef.current) thumbInputRef.current.value = "";
+      toast.success("Music video uploaded successfully!");
+    } catch (err: any) {
+      toast.error("Upload failed: " + (err.message || "Unknown error"));
+      setUploadStep("");
+      setUploadProgress(null);
     }
     setIsUploading(false);
   };
@@ -239,7 +298,27 @@ const MusicianDashboard = () => {
             <div>
               <h2 className="text-foreground text-sm font-bold mb-4">Upload Music Video</h2>
               <div className="bg-card border border-border rounded-lg p-4 max-w-lg">
-                <form className="space-y-3" onSubmit={handleUpload}>
+
+                {/* Mode toggle */}
+                <div className="flex gap-1 mb-4 bg-secondary rounded p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode("youtube")}
+                    className={cn("flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-[11px] font-bold transition-colors", uploadMode === "youtube" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    <Youtube className="w-3.5 h-3.5 text-red-500" /> YouTube Link
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode("file")}
+                    className={cn("flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-[11px] font-bold transition-colors", uploadMode === "file" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    <FolderOpen className="w-3.5 h-3.5 text-primary" /> Upload File
+                  </button>
+                </div>
+
+                {/* Shared fields */}
+                <form className="space-y-3" onSubmit={uploadMode === "youtube" ? handleUpload : handleFileUpload}>
                   <div>
                     <label className="text-foreground text-[11px] font-semibold mb-1 block">Song Title *</label>
                     <input className={inputCls} placeholder="Enter song title" value={vTitle} onChange={e => setVTitle(e.target.value)} />
@@ -265,37 +344,122 @@ const MusicianDashboard = () => {
                     </div>
                   </div>
 
-                  {/* YouTube Link */}
-                  <div>
-                    <label className="text-foreground text-[11px] font-semibold mb-1 block">YouTube Link *</label>
-                    <div className="relative">
-                      <Youtube className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-red-500" />
-                      <input
-                        className={`${inputCls} pl-8`}
-                        placeholder="https://youtu.be/... or https://youtube.com/watch?v=..."
-                        value={vYoutubeLink}
-                        onChange={e => setVYoutubeLink(e.target.value)}
-                      />
+                  {uploadMode === "youtube" ? (
+                    <div>
+                      <label className="text-foreground text-[11px] font-semibold mb-1 block">YouTube Link *</label>
+                      <div className="relative">
+                        <Youtube className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-red-500" />
+                        <input
+                          className={`${inputCls} pl-8`}
+                          placeholder="https://youtu.be/... or https://youtube.com/watch?v=..."
+                          value={vYoutubeLink}
+                          onChange={e => setVYoutubeLink(e.target.value)}
+                        />
+                      </div>
+                      {vYoutubeLink && (() => {
+                        const id = extractYouTubeId(vYoutubeLink);
+                        if (!id) return <p className="text-destructive text-[9px] mt-1">Could not detect video ID — check the link</p>;
+                        return (
+                          <div className="mt-2 flex items-center gap-2">
+                            <img src={`https://img.youtube.com/vi/${id}/mqdefault.jpg`} className="w-20 h-12 rounded object-cover border border-border" alt="thumb" />
+                            <p className="text-green-400 text-[9px]">Video ID: {id} ✓</p>
+                          </div>
+                        );
+                      })()}
+                      <p className="text-muted-foreground text-[9px] mt-1">Paste any YouTube share link. Thumbnail is auto-fetched.</p>
                     </div>
-                    {vYoutubeLink && (() => {
-                      const id = extractYouTubeId(vYoutubeLink);
-                      if (!id) return <p className="text-destructive text-[9px] mt-1">Could not detect video ID — check the link</p>;
-                      return (
-                        <div className="mt-2 flex items-center gap-2">
-                          <img src={`https://img.youtube.com/vi/${id}/mqdefault.jpg`} className="w-20 h-12 rounded object-cover border border-border" alt="thumb" />
-                          <p className="text-green-400 text-[9px]">Video ID: {id} ✓</p>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="text-foreground text-[11px] font-semibold mb-1 block">Video File * <span className="text-muted-foreground font-normal">(MP4, max 200MB)</span></label>
+                        <div
+                          className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary transition-colors"
+                          onClick={() => videoInputRef.current?.click()}
+                        >
+                          <input
+                            ref={videoInputRef}
+                            type="file"
+                            accept="video/*"
+                            className="hidden"
+                            onChange={e => setVVideoFile(e.target.files?.[0] || null)}
+                          />
+                          {vVideoFile ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <FolderOpen className="w-4 h-4 text-primary" />
+                              <div className="text-left">
+                                <p className="text-foreground text-[11px] font-semibold truncate max-w-[200px]">{vVideoFile.name}</p>
+                                <p className="text-muted-foreground text-[9px]">{formatFileSize(vVideoFile.size)}</p>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <FolderOpen className="w-6 h-6 text-muted-foreground mx-auto mb-1" />
+                              <p className="text-muted-foreground text-[10px]">Click to select video file</p>
+                            </>
+                          )}
                         </div>
-                      );
-                    })()}
-                    <p className="text-muted-foreground text-[9px] mt-1">Paste any YouTube share link. Thumbnail is auto-fetched.</p>
-                  </div>
+                      </div>
+
+                      <div>
+                        <label className="text-foreground text-[11px] font-semibold mb-1 block">Thumbnail Image <span className="text-muted-foreground font-normal">(optional)</span></label>
+                        <div
+                          className="border-2 border-dashed border-border rounded-lg p-3 text-center cursor-pointer hover:border-primary transition-colors"
+                          onClick={() => thumbInputRef.current?.click()}
+                        >
+                          <input
+                            ref={thumbInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={e => setVThumbnailFile(e.target.files?.[0] || null)}
+                          />
+                          {vThumbnailFile ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <Image className="w-4 h-4 text-primary" />
+                              <div className="text-left">
+                                <p className="text-foreground text-[11px] font-semibold truncate max-w-[200px]">{vThumbnailFile.name}</p>
+                                <p className="text-muted-foreground text-[9px]">{formatFileSize(vThumbnailFile.size)}</p>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <Image className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
+                              <p className="text-muted-foreground text-[10px]">Click to select thumbnail</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {isUploading && (
+                        <div className="bg-secondary rounded-lg p-3 space-y-2">
+                          <p className="text-foreground text-[11px] font-semibold">{uploadStep}</p>
+                          {uploadProgress && (
+                            <>
+                              <div className="w-full bg-border rounded-full h-2 overflow-hidden">
+                                <div
+                                  className="bg-primary h-2 rounded-full transition-all"
+                                  style={{ width: `${uploadProgress.percent}%` }}
+                                />
+                              </div>
+                              <p className="text-muted-foreground text-[9px]">
+                                {formatFileSize(uploadProgress.loaded)} / {formatFileSize(uploadProgress.total)} — {uploadProgress.percent}%
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
 
                   <button
                     type="submit"
                     disabled={isUploading}
                     className="bg-primary text-primary-foreground px-6 py-2 rounded text-xs font-bold hover:bg-primary/90 transition-colors flex items-center gap-1.5 disabled:opacity-50"
                   >
-                    {isUploading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...</> : <><Plus className="w-3.5 h-3.5" /> Upload Video</>}
+                    {isUploading
+                      ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {uploadStep || "Uploading..."}</>
+                      : <><Plus className="w-3.5 h-3.5" /> Upload Video</>
+                    }
                   </button>
                 </form>
               </div>
