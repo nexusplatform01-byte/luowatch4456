@@ -151,8 +151,8 @@ const MoviePlayerPage = () => {
           structuredData={buildMovieStructuredData({ ...movie, id: id! })}
         />
       )}
-      <div className="w-full px-4 md:px-6 xl:px-10 py-3">
-        <div className="flex gap-4">
+      <div className="w-full px-4 md:px-6 xl:px-10 py-3 max-w-5xl mx-auto">
+        <div className="flex gap-3">
           <main className="flex-1 min-w-0">
             {/* Video Player */}
             <div className="relative aspect-video bg-black rounded-lg overflow-hidden mb-3">
@@ -218,7 +218,7 @@ const MoviePlayerPage = () => {
             </div>
 
             {/* Title & Info */}
-            <h1 className="text-foreground text-base font-bold mb-1">{currentEpTitle}</h1>
+            <h1 className="text-foreground text-sm font-bold mb-1">{currentEpTitle}</h1>
             <div className="flex items-center gap-2 mb-2 flex-wrap text-muted-foreground text-[10px]">
               <span className="flex items-center gap-0.5"><Eye className="w-3 h-3" /> {movie.views} views</span>
               <span>· {movie.downloads} downloads</span>
@@ -268,7 +268,7 @@ const MoviePlayerPage = () => {
             <CommentSection contentId={id || ""} contentType="movie" />
           </main>
 
-          <aside className="w-56 flex-shrink-0 space-y-4 hidden md:block">
+          <aside className="w-44 flex-shrink-0 space-y-4 hidden md:block">
             <div className="bg-card rounded p-3 border border-border">
               <h3 className="text-foreground text-xs font-bold mb-2">More Movies</h3>
               <div className="space-y-2">

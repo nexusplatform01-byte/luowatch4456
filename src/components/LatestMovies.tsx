@@ -21,13 +21,13 @@ const LatestMovies = ({ selectedVJ, genreFilter, typeFilter }: LatestMoviesProps
         <span className="text-primary">●</span> Latest Movies
       </h2>
       {loading ? (
-        <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
           {Array.from({ length: 6 }).map((_, i) => <MovieCardSkeleton key={i} />)}
         </div>
       ) : filtered.length === 0 ? (
         <p className="text-muted-foreground text-[10px]">No movies found.</p>
       ) : (
-        <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
           {filtered.map((movie) => (
             <MovieCard key={movie.id} movie={movie} />
           ))}
