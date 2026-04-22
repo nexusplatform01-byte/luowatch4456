@@ -11,7 +11,8 @@ interface Props {
   role: "vj" | "musician";
 }
 
-const FEE_AMOUNT = 10000; // UGX
+const VJ_FEE = 100000; // UGX
+const MUSICIAN_FEE = 10000; // UGX
 
 export async function checkCreatorPayment(userId: string, role: string): Promise<boolean> {
   const snap = await getDoc(doc(db, "creator_payments", `${userId}_${role}`));
@@ -19,13 +20,16 @@ export async function checkCreatorPayment(userId: string, role: string): Promise
 }
 
 export async function recordCreatorPayment(userId: string, role: string, transactionRef: string) {
+  const amount = role === "vj" ? VJ_FEE : MUSICIAN_FEE;
   await setDoc(doc(db, "creator_payments", `${userId}_${role}`), {
-    userId, role, amount: FEE_AMOUNT, transactionRef, paid: true, paidAt: Timestamp.now(),
+    userId, role, amount, transactionRef, paid: true, paidAt: Timestamp.now(),
   });
 }
 
 const CreatorPaymentGate = ({ children, role }: Props) => {
   const { user } = useAuth();
+  const feeAmount = role === "vj" ? VJ_FEE : MUSICIAN_FEE;
+  const feeFormatted = role === "vj" ? "100,000" : "10,000";
   const [hasPaid, setHasPaid] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -52,7 +56,7 @@ const CreatorPaymentGate = ({ children, role }: Props) => {
     
     try {
       const msisdn = formatPhone(phoneNumber);
-      const res = await requestPayment(msisdn, FEE_AMOUNT, `LUO WATCH ${role.toUpperCase()} Access Fee`);
+      const res = await requestPayment(msisdn, feeAmount, `LUO WATCH ${role.toUpperCase()} Access Fee`);
       
       if (!res.success && !res.internal_reference) {
         toast.error(res.message || "Payment failed");
@@ -93,7 +97,7 @@ const CreatorPaymentGate = ({ children, role }: Props) => {
         </div>
         <h2 className="text-foreground text-sm font-bold mb-1">{role.toUpperCase()} Dashboard Access</h2>
         <p className="text-muted-foreground text-[11px] mb-4">
-          A one-time payment of <span className="text-primary font-bold">10,000 UGX</span> is required. Pay once, access forever.
+          A one-time payment of <span className="text-primary font-bold">{feeFormatted} UGX</span> is required. Pay once, access forever.
         </p>
         <div className="bg-secondary/50 rounded p-3 mb-4 text-left">
           <p className="text-foreground text-[10px] font-semibold mb-2">What you get:</p>
@@ -123,7 +127,7 @@ const CreatorPaymentGate = ({ children, role }: Props) => {
             className="w-full bg-secondary text-foreground text-xs px-3 py-2 rounded border border-border focus:outline-none focus:ring-1 focus:ring-primary" />
           <button onClick={handlePayment} disabled={loading}
             className="w-full bg-primary text-primary-foreground py-2.5 rounded text-xs font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-            {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing...</> : <><CreditCard className="w-3.5 h-3.5" /> Pay 10,000 UGX via Mobile Money</>}
+            {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing...</> : <><CreditCard className="w-3.5 h-3.5" /> Pay {feeFormatted} UGX via Mobile Money</>}
           </button>
         </div>
       </div>

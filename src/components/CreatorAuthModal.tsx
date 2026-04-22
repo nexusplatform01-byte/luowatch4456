@@ -171,7 +171,7 @@ const CreatorAuthModal = ({ open, onClose, role }: Props) => {
         <div className="p-4 pb-2 text-center border-b border-border">
           <h2 className="text-foreground text-sm font-bold">{info.title}</h2>
           <p className="text-muted-foreground text-[10px] mt-0.5">
-            {role === "tiktoker" ? "Free to join!" : "One-time fee of 10,000 UGX after registration"}
+            {role === "tiktoker" ? "Free to join!" : role === "vj" ? "One-time fee of 100,000 UGX after registration" : "One-time fee of 10,000 UGX after registration"}
           </p>
         </div>
 

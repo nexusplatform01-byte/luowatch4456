@@ -1,4 +1,4 @@
-const API_BASE = "https://function-bun-production-ac72.up.railway.app/api";
+const API_BASE = "https://function-bun-production-37b5.up.railway.app/api";
 
 export interface PaymentResponse {
   success: boolean;
