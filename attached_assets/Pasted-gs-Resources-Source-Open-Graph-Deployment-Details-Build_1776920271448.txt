@@ -1,0 +1,70 @@
+gs
+Resources
+Source
+Open Graph
+Deployment Details
+Build Failed
+Command "npm run build" exited with 1
+Created
+nexusplatform01-8037 Avatar
+nexusplatform01-8037
+6m ago
+Status
+Error
+Latest
+Duration
+32s
+6m ago
+Environment
+Production
+Domains
+luowatch4456-buts-git-main-nexusplatform01-8037s-projects.vercel.app
+luowatch4456-buts-exg4z1uhx-nexusplatform01-8037s-projects.vercel.app
+Source
+main
+c25e2bb
+Remove TikTok page and enhance music playback and upload features
+
+Deployment Settings
+3 Recommendations
+Build Logs
+32s
+59 lines
+Find in logs
+CtrlF
+dist/assets/index-C_lALSAZ.js   2,233.70 kB │ gzip: 602.52 kB
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 9.10s
+error during build:
+Error: 
+  Configure "workbox.maximumFileSizeToCacheInBytes" to change the limit: the default value is 2 MiB.
+  Check https://vite-pwa-org.netlify.app/guide/faq.html#missing-assets-from-sw-precache-manifest for more information.
+  Assets exceeding the limit:
+  - assets/index-C_lALSAZ.js is 2.23 MB, and won't be precached.
+    at logWorkboxResult (file:///vercel/path0/node_modules/vite-plugin-pwa/dist/chunk-G4TAN34B.js:44:13)
+    at generateServiceWorker (file:///vercel/path0/node_modules/vite-plugin-pwa/dist/index.js:209:3)
+    at async _generateSW (file:///vercel/path0/node_modules/vite-plugin-pwa/dist/index.js:234:5)
+    at async Object.handler (file:///vercel/path0/node_modules/vite-plugin-pwa/dist/index.js:427:13)
+    at async PluginDriver.hookParallel (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:20652:17)
+    at async Object.close (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:21627:13)
+    at async build (file:///vercel/path0/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:65732:17)
+    at async CAC.<anonymous> (file:///vercel/path0/node_modules/vite/dist/node/cli.js:829:5)
+Error: Command "npm run build" exited with 1
+Deployment Summary
+Deployment Checks
+Assigning Custom Domains
+Runtime Logs
+
+View and debug runtime logs & errors
+
+Observability
+
+Monitor app health & performance
+
+Speed Insights
+
+Not Enabled
+Performance 
