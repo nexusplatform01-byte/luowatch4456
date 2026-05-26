@@ -33,12 +33,8 @@ const MovieCard = ({ movie, rank }: MovieCardProps) => {
           </div>
         )}
 
-        {/* NEW badge — top right */}
-        {isNew && (
-          <span className="absolute top-1.5 right-1.5 bg-primary text-primary-foreground text-[8px] font-black px-1.5 py-0.5 rounded-full leading-none tracking-wide shadow-lg">
-            New
-          </span>
-        )}
+        {/* Bottom gradient for readability */}
+        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
 
         {/* Rank number — bottom left */}
         {rank !== undefined && (
@@ -48,8 +44,20 @@ const MovieCard = ({ movie, rank }: MovieCardProps) => {
           </span>
         )}
 
-        {/* Bottom gradient for readability */}
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+        {/* NEW badge — bottom right */}
+        {isNew && (
+          <span className="absolute bottom-1 right-1 bg-primary text-primary-foreground text-[6px] font-black px-1 py-0.5 leading-none tracking-wide shadow-lg uppercase">
+            New
+          </span>
+        )}
+
+        {/* VJ name — bottom center/right area above the bottom bar */}
+        {movie.vjName && (
+          <span className="absolute bottom-5 left-0 right-0 text-center text-[6px] font-bold text-white/80 truncate px-1 leading-none"
+            style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
+            {movie.vjName}
+          </span>
+        )}
       </div>
 
       {/* Info below poster */}
