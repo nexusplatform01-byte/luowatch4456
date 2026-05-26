@@ -13,6 +13,8 @@ import { useVJMovies } from "@/hooks/useFirestore";
 import { addMovie, deleteMovie, updateMovie, addEpisode, deleteEpisode, updateEpisode, getEpisodesByVJ, FireEpisode } from "@/lib/firestore";
 import { subscribeCreatorEarning, getCreatorTransactions, recordWithdrawal, getOrCreateEarning, CreatorEarning, EarningTransaction } from "@/lib/earnings";
 import { genreList } from "@/data/categories";
+import { addCarousel, deleteCarousel, subscribeCarousels, FireCarousel } from "@/lib/carousels";
+import { Image } from "lucide-react";
 
 const sidebarItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -21,6 +23,7 @@ const sidebarItems = [
   { id: "upload-episode", label: "Upload Episode", icon: Film },
   { id: "featured", label: "Featured", icon: TrendingUp },
   { id: "manage-content", label: "Manage Content", icon: List },
+  { id: "hero-carousel", label: "Hero Carousel", icon: Image },
   { id: "wallet", label: "Wallet", icon: Wallet },
 ];
 
@@ -75,18 +78,44 @@ const VJDashboard = () => {
   const [wAmount, setWAmount] = useState("");
   const [withdrawing, setWithdrawing] = useState(false);
 
+  // Hero Carousel
+  const [carousels, setCarousels] = useState<FireCarousel[]>([]);
+  const [cImageUrl, setCImageUrl] = useState("");
+  const [cTitle, setCTitle] = useState("");
+  const [cDescription, setCDescription] = useState("");
+  const [cLinkUrl, setCLinkUrl] = useState("");
+  const [isAddingCarousel, setIsAddingCarousel] = useState(false);
+
   useEffect(() => {
     if (user?.id) {
       getEpisodesByVJ(user.id).then(setEpisodes).catch(() => {});
-      // Initialize earning record
       getOrCreateEarning(user.id, `${user.firstName} ${user.lastName}`.trim() || user.email, "vj").catch(() => {});
-      // Subscribe to real-time earnings
       const unsub = subscribeCreatorEarning(user.id, setEarning);
-      // Load transactions
       getCreatorTransactions(user.id).then(setTransactions).catch(() => {});
       return unsub;
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    const unsub = subscribeCarousels(setCarousels);
+    return unsub;
+  }, []);
+
+  const handleAddCarousel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cImageUrl) { toast.error("Image URL is required"); return; }
+    setIsAddingCarousel(true);
+    try {
+      await addCarousel({ imageUrl: cImageUrl, title: cTitle, description: cDescription, linkUrl: cLinkUrl });
+      setCImageUrl(""); setCTitle(""); setCDescription(""); setCLinkUrl("");
+      toast.success("Carousel slide added!");
+    } catch (err: any) { toast.error("Failed: " + (err.message || "Unknown error")); }
+    setIsAddingCarousel(false);
+  };
+
+  const handleDeleteCarousel = async (id: string) => {
+    try { await deleteCarousel(id); toast.success("Slide removed"); } catch { toast.error("Delete failed"); }
+  };
 
   const refreshEpisodes = async () => {
     if (user?.id) {
@@ -607,6 +636,76 @@ const VJDashboard = () => {
                       </table>
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ====== HERO CAROUSEL ====== */}
+          {activeTab === "hero-carousel" && (
+            <div>
+              <h2 className="text-foreground text-sm font-bold mb-1">Hero Carousel</h2>
+              <p className="text-muted-foreground text-[10px] mb-4">Add banner slides that appear in the homepage hero slider. Paste a direct image URL and optional link.</p>
+
+              <div className="bg-card border border-border rounded-lg p-4 max-w-lg mb-6">
+                <h3 className="text-foreground text-[11px] font-bold mb-3 flex items-center gap-1.5"><Image className="w-3.5 h-3.5 text-primary" /> Add New Slide</h3>
+                <form className="space-y-3" onSubmit={handleAddCarousel}>
+                  <div>
+                    <label className="text-foreground text-[11px] font-semibold mb-1 block">Banner Image URL *</label>
+                    <input className={inputCls} placeholder="https://i.imgur.com/... or any image URL" value={cImageUrl} onChange={e => setCImageUrl(e.target.value)} />
+                    {cImageUrl && (
+                      <div className="mt-2 rounded overflow-hidden h-24 bg-secondary">
+                        <img src={cImageUrl} alt="Preview" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-foreground text-[11px] font-semibold mb-1 block">Title (optional)</label>
+                    <input className={inputCls} placeholder="Slide headline..." value={cTitle} onChange={e => setCTitle(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-foreground text-[11px] font-semibold mb-1 block">Description (optional)</label>
+                    <input className={inputCls} placeholder="Short description..." value={cDescription} onChange={e => setCDescription(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-foreground text-[11px] font-semibold mb-1 block">Link URL (optional)</label>
+                    <input className={inputCls} placeholder="/movie/abc123 or https://..." value={cLinkUrl} onChange={e => setCLinkUrl(e.target.value)} />
+                  </div>
+                  <button type="submit" disabled={isAddingCarousel} className="bg-primary text-primary-foreground px-6 py-2 rounded text-xs font-bold hover:bg-primary/90 transition-colors flex items-center gap-1.5 disabled:opacity-50">
+                    {isAddingCarousel ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Adding...</> : <><Plus className="w-3.5 h-3.5" /> Add to Carousel</>}
+                  </button>
+                </form>
+              </div>
+
+              <h3 className="text-foreground text-[11px] font-bold mb-3">Current Slides ({carousels.length})</h3>
+              {carousels.length === 0 ? (
+                <p className="text-muted-foreground text-xs">No carousel slides yet. Add one above to display it on the homepage.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {carousels.map((slide, index) => (
+                    <div key={slide.id} className="bg-card border border-border rounded-lg overflow-hidden">
+                      <div className="relative h-28">
+                        <img src={slide.imageUrl} alt={slide.title || `Slide ${index + 1}`} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                        <span className="absolute top-2 left-2 bg-primary text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded">#{index + 1}</span>
+                        <button
+                          onClick={() => handleDeleteCarousel(slide.id)}
+                          className="absolute top-2 right-2 bg-destructive/90 text-destructive-foreground p-1 rounded hover:bg-destructive transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="p-2.5">
+                        {slide.title ? (
+                          <p className="text-foreground text-[11px] font-bold truncate">{slide.title}</p>
+                        ) : (
+                          <p className="text-muted-foreground text-[10px] italic">No title</p>
+                        )}
+                        {slide.description && <p className="text-muted-foreground text-[9px] truncate mt-0.5">{slide.description}</p>}
+                        {slide.linkUrl && <p className="text-primary text-[9px] truncate mt-0.5">{slide.linkUrl}</p>}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

@@ -21,61 +21,86 @@ const Header = () => {
     }
   };
 
+  const navItems = [
+    { label: "MOVIES", path: "/" },
+    { label: "MUSIC", path: "/music" },
+    { label: "LIVE TV", path: "/live-tv" },
+    { label: "GAMES", path: "/games" },
+  ];
+
   return (
-    <header className="bg-card border-b border-border sticky top-0 z-50 hidden md:block">
-      <div className="w-full px-4 md:px-6 xl:px-10">
-        <div className="flex items-center justify-between h-10">
-          <Link to="/" className="flex items-center gap-1.5">
-            <img src={logo} alt="LUO WATCH" className="w-6 h-6" />
-            <span className="text-primary font-bold text-sm tracking-tight">LUO WATCH</span>
+    <header className="glass-header sticky top-0 z-50 hidden md:block">
+      <div className="w-full px-4 md:px-8 xl:px-12">
+        <div className="flex items-center justify-between h-12">
+
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+            <img src={logo} alt="LUO WATCH" className="w-7 h-7 rounded" />
+            <span className="text-primary font-black text-sm tracking-widest uppercase">LUO WATCH</span>
           </Link>
-          <nav className="flex items-center gap-0.5">
-            {[
-              { label: "Movies", path: "/" },
-              { label: "Music", path: "/music" },
-              { label: "Live TV", path: "/live-tv" },
-              { label: "Games", path: "/games" },
-            ].map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "px-2.5 py-1.5 rounded text-[11px] font-semibold transition-colors",
-                  location.pathname === item.path
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
+
+          {/* Nav */}
+          <nav className="flex items-center gap-1">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "relative px-3 py-1.5 rounded text-[11px] font-bold tracking-widest transition-all duration-200",
+                    isActive
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {item.label}
+                  {isActive && <span className="nav-active-dot" />}
+                </Link>
+              );
+            })}
           </nav>
+
+          {/* Actions */}
           <div className="flex items-center gap-2">
             <InstallAppButton />
             <SearchResults />
+
             {user ? (
               <div className="flex items-center gap-1.5">
                 {(user.email === "luowatch0@gmail.com" || user.email === "mainplatform.nexus@gmail.com") && (
-                  <button onClick={() => navigate("/admin")} className="bg-primary/20 text-primary px-2 py-1 rounded text-[10px] font-semibold hover:bg-primary/30 transition-colors flex items-center gap-1">
-                    <Shield className="w-3 h-3" /> Admin
+                  <button
+                    onClick={() => navigate("/admin")}
+                    className="bg-primary/15 text-primary border border-primary/30 px-2.5 py-1 rounded text-[10px] font-bold tracking-wider hover:bg-primary/25 transition-all flex items-center gap-1"
+                  >
+                    <Shield className="w-3 h-3" /> ADMIN
                   </button>
                 )}
                 {user.role !== "viewer" && (
-                  <button onClick={() => navigate(getDashboardPath())} className="bg-secondary text-foreground px-2 py-1 rounded text-[10px] font-semibold hover:bg-secondary/80 transition-colors flex items-center gap-1">
-                    <LayoutDashboard className="w-3 h-3" /> Dashboard
+                  <button
+                    onClick={() => navigate(getDashboardPath())}
+                    className="bg-white/5 text-foreground border border-white/10 px-2.5 py-1 rounded text-[10px] font-bold tracking-wider hover:bg-white/10 transition-all flex items-center gap-1"
+                  >
+                    <LayoutDashboard className="w-3 h-3" /> DASHBOARD
                   </button>
                 )}
-                <span className="text-foreground text-[10px] font-semibold">{user.firstName}</span>
-                <button onClick={logout} className="text-muted-foreground hover:text-foreground transition-colors">
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-1.5 ml-1 pl-2 border-l border-white/10">
+                  <span className="text-foreground text-[10px] font-bold tracking-wide uppercase">{user.firstName}</span>
+                  <button onClick={logout} className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded">
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             ) : (
-              <button onClick={() => { setAuthModalTab("login"); setShowAuthModal(true); }} className="bg-primary text-primary-foreground px-3 py-1 rounded text-[11px] font-semibold hover:bg-primary/90 transition-colors flex items-center gap-1">
-                <User className="w-3 h-3" /> Login
+              <button
+                onClick={() => { setAuthModalTab("login"); setShowAuthModal(true); }}
+                className="bg-primary text-primary-foreground px-4 py-1.5 rounded text-[11px] font-bold tracking-wider hover:bg-primary/90 transition-all btn-primary-glow flex items-center gap-1.5"
+              >
+                <User className="w-3.5 h-3.5" /> LOGIN
               </button>
             )}
           </div>
+
         </div>
       </div>
     </header>
