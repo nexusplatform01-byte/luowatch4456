@@ -19,7 +19,7 @@ const MovieCard = ({ movie, rank }: MovieCardProps) => {
   return (
     <Link to={`/movie/${movie.id}`} className="group block">
       {/* Poster */}
-      <div className="relative aspect-[2/3] overflow-hidden rounded-lg bg-secondary">
+      <div className="relative aspect-[2/3] overflow-hidden bg-secondary">
         {movie.posterUrl ? (
           <img
             src={movie.posterUrl}
