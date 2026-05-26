@@ -19,7 +19,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
-      <div className="w-full px-4 md:px-6 xl:px-10 py-3">
+      <div className="w-full px-2 md:px-6 xl:px-10 py-2 md:py-3">
         <div className="flex gap-4">
           <main className="flex-1 min-w-0">
             <BannerSlider />

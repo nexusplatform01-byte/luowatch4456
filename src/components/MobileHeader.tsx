@@ -36,75 +36,75 @@ const MobileHeader = () => {
 
   return (
     <header className="glass-header sticky top-0 z-50 md:hidden">
-      <div className="flex items-center justify-between px-3 h-12">
+      <div className="flex items-center justify-between px-2.5 h-10">
 
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-          <img src={logo} alt="LUO WATCH" className="w-6 h-6 rounded" />
-          <span className="text-primary font-black text-sm tracking-widest uppercase">LUO</span>
+        <Link to="/" className="flex items-center gap-1.5 flex-shrink-0">
+          <img src={logo} alt="LUO WATCH" className="w-5 h-5 rounded" />
+          <span className="text-primary font-black text-xs tracking-widest uppercase">LUO</span>
         </Link>
 
         {/* Controls */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <InstallAppButton />
 
           {isHomePage && (
             <>
-              <div className="flex bg-white/5 border border-white/10 rounded-md overflow-hidden">
+              <div className="flex bg-white/5 border border-white/10 rounded overflow-hidden">
                 <button
                   onClick={() => handleTypeSwitch("movie")}
-                  className={`flex items-center gap-0.5 px-2.5 py-1 text-[9px] font-black tracking-wider uppercase transition-all ${
+                  className={`flex items-center gap-0.5 px-2 py-0.5 text-[8px] font-black tracking-wide uppercase transition-all ${
                     currentType === "movie"
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground"
                   }`}
                 >
-                  <Film className="w-2.5 h-2.5" /> Movies
+                  <Film className="w-2 h-2" /> Movies
                 </button>
                 <button
                   onClick={() => handleTypeSwitch("series")}
-                  className={`flex items-center gap-0.5 px-2.5 py-1 text-[9px] font-black tracking-wider uppercase transition-all ${
+                  className={`flex items-center gap-0.5 px-2 py-0.5 text-[8px] font-black tracking-wide uppercase transition-all ${
                     currentType === "series"
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground"
                   }`}
                 >
-                  <Tv className="w-2.5 h-2.5" /> Series
+                  <Tv className="w-2 h-2" /> Series
                 </button>
               </div>
               <button
                 onClick={() => { setShowCategories(!showCategories); setShowSearch(false); }}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
               >
-                <ChevronDown className={`w-4 h-4 transition-transform ${showCategories ? "rotate-180" : ""}`} />
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showCategories ? "rotate-180" : ""}`} />
               </button>
             </>
           )}
 
           <button
             onClick={() => { setShowSearch(!showSearch); setShowCategories(false); }}
-            className="text-muted-foreground hover:text-primary transition-colors p-1"
+            className="text-muted-foreground hover:text-primary transition-colors p-0.5"
           >
-            {showSearch ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+            {showSearch ? <X className="w-3.5 h-3.5" /> : <Search className="w-3.5 h-3.5" />}
           </button>
 
           {user ? (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               {user.role !== "viewer" && (
-                <button onClick={() => navigate(getDashboardPath())} className="text-muted-foreground hover:text-primary transition-colors p-1">
-                  <LayoutDashboard className="w-4 h-4" />
+                <button onClick={() => navigate(getDashboardPath())} className="text-muted-foreground hover:text-primary transition-colors p-0.5">
+                  <LayoutDashboard className="w-3.5 h-3.5" />
                 </button>
               )}
-              <button onClick={logout} className="text-muted-foreground hover:text-destructive transition-colors p-1">
-                <LogOut className="w-4 h-4" />
+              <button onClick={logout} className="text-muted-foreground hover:text-destructive transition-colors p-0.5">
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
             <button
               onClick={() => { setAuthModalTab("login"); setShowAuthModal(true); }}
-              className="bg-primary text-primary-foreground px-3 py-1 rounded text-[10px] font-black tracking-wider flex items-center gap-1"
+              className="bg-primary text-primary-foreground px-2 py-0.5 rounded text-[8px] font-black tracking-wide flex items-center gap-0.5"
             >
-              <User className="w-3 h-3" /> LOGIN
+              <User className="w-2.5 h-2.5" /> LOGIN
             </button>
           )}
         </div>
