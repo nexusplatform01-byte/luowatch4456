@@ -60,13 +60,15 @@ const MovieCard = ({ movie }: MovieCardProps) => {
         {/* VJ badge — top right, gradient pill */}
         {movie.vjName && palette && (
           <span
-            className="absolute top-1.5 right-1.5 text-[7px] font-black px-1.5 py-[3px] leading-none tracking-wider shadow-md uppercase max-w-[65%] truncate"
+            className="absolute top-1.5 right-1.5 text-[7px] font-black px-1.5 py-[3px] leading-none tracking-wider shadow-md uppercase whitespace-nowrap overflow-hidden"
             style={{
               background: palette.bg,
               color: palette.text,
               borderRadius: "3px",
               letterSpacing: "0.06em",
               boxShadow: "0 2px 6px rgba(0,0,0,0.45)",
+              maxWidth: "calc(100% - 8px)",
+              textOverflow: "ellipsis",
             }}
           >
             {movie.vjName}

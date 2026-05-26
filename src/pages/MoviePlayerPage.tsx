@@ -161,23 +161,20 @@ const MoviePlayerPage = () => {
                   const fileId = getGDriveFileId(videoUrl);
                   if (fileId) {
                     return (
-                      <div className="relative w-full h-full">
+                      <div className="relative w-full h-full bg-black">
                         <iframe
                           src={`https://drive.google.com/file/d/${fileId}/preview`}
-                          className="w-full h-full"
-                          allow="autoplay; encrypted-media"
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            border: "none",
+                          }}
+                          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
                           allowFullScreen
-                          sandbox="allow-scripts allow-same-origin allow-popups"
                         />
-                        <div 
-                          className="absolute top-0 right-0 w-16 h-16 z-50 flex items-center justify-center cursor-not-allowed select-none"
-                          style={{ background: 'transparent' }}
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                          onContextMenu={(e) => { e.preventDefault(); }}
-                        >
-                          <img src="/logo.png" alt="LUO WATCH" className="w-8 h-8 pointer-events-none" draggable={false} />
-                        </div>
                       </div>
                     );
                   }
