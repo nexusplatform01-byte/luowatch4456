@@ -315,6 +315,22 @@ export async function adminCreditEarning(
   });
 }
 
+// Reset all VJ earnings balances to 0 (admin use)
+export async function resetAllVJEarnings(): Promise<void> {
+  const snap = await getDocs(collection(db, "creator_earnings"));
+  const updates = snap.docs.map(d =>
+    updateDoc(d.ref, {
+      totalDownloads: 0,
+      totalEarned: 0,
+      totalWithdrawn: 0,
+      balance: 0,
+      monthlyDownloads: 0,
+      updatedAt: serverTimestamp(),
+    })
+  );
+  await Promise.all(updates);
+}
+
 // Reset all movie/music download & view counts to 0
 export async function resetAllContentCounts(): Promise<void> {
   // Reset movies

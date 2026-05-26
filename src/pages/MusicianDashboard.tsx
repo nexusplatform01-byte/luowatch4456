@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMusicianVideos } from "@/hooks/useFirestore";
 import { addMusicVideo, deleteMusicVideo, updateMusicVideo } from "@/lib/firestore";
-import { sendWithdrawal, formatPhone } from "@/lib/payments";
+import { sendWithdrawal, formatPhone, pollPaymentStatus } from "@/lib/payments";
 import { subscribeCreatorEarning, getCreatorTransactions, recordWithdrawal, getOrCreateEarning, CreatorEarning, EarningTransaction } from "@/lib/earnings";
 import { uploadToR2, formatFileSize, R2UploadProgress } from "@/lib/r2Upload";
 import { uploadToS3 } from "@/lib/s3Upload";
@@ -200,19 +200,45 @@ const MusicianDashboard = () => {
     if (wAmountNum > balance) { toast.error("Insufficient balance"); return; }
     if (!user) return;
     setWithdrawing(true);
+    const creatorName = `${user.firstName} ${user.lastName}`.trim() || user.email;
+    const formattedPhone = formatPhone(wPhone);
     try {
-      const res = await sendWithdrawal(formatPhone(wPhone), wNet, "Musician earnings withdrawal");
-      if (res.success) {
-        await recordWithdrawal(user.id, `${user.firstName} ${user.lastName}`.trim() || user.email, wAmountNum, formatPhone(wPhone), "completed");
+      const res = await sendWithdrawal(formattedPhone, wNet, "Musician earnings withdrawal");
+      if (!res.success) {
+        await recordWithdrawal(user.id, creatorName, wAmountNum, formattedPhone, "failed");
+        toast.error(res.message || "Withdrawal failed");
+        setWithdrawing(false);
+        return;
+      }
+      if (res.internal_reference) {
+        toast.info("Processing payment, please wait...");
+        pollPaymentStatus(
+          res.internal_reference,
+          async () => {
+            await recordWithdrawal(user.id, creatorName, wAmountNum, formattedPhone, "completed");
+            toast.success(`Withdrawal successful! ${formatUGX(wNet)} sent to your phone.`);
+            setWPhone(""); setWAmount("");
+            getCreatorTransactions(user.id).then(setTransactions).catch(() => {});
+            setWithdrawing(false);
+          },
+          async (data) => {
+            await recordWithdrawal(user.id, creatorName, wAmountNum, formattedPhone, "failed");
+            toast.error(data.message || "Withdrawal could not be completed. Balance not deducted.");
+            setWithdrawing(false);
+          },
+          () => {}
+        );
+      } else {
+        await recordWithdrawal(user.id, creatorName, wAmountNum, formattedPhone, "completed");
         toast.success(`Withdrawal successful! ${formatUGX(wNet)} sent to your phone.`);
         setWPhone(""); setWAmount("");
         getCreatorTransactions(user.id).then(setTransactions).catch(() => {});
-      } else {
-        await recordWithdrawal(user.id, `${user.firstName} ${user.lastName}`.trim() || user.email, wAmountNum, formatPhone(wPhone), "failed");
-        toast.error(res.message || "Failed");
+        setWithdrawing(false);
       }
-    } catch { toast.error("Withdrawal failed"); }
-    setWithdrawing(false);
+    } catch {
+      toast.error("Withdrawal failed");
+      setWithdrawing(false);
+    }
   };
 
   const formatUGX = (n: number) => `UGX ${n.toLocaleString()}`;

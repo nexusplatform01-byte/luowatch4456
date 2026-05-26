@@ -41,7 +41,7 @@ const MobileHeader = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-1.5 flex-shrink-0">
           <img src={logo} alt="LUO WATCH" className="w-5 h-5 rounded" />
-          <span className="text-primary font-black text-xs tracking-widest uppercase">LUO</span>
+          <span className="text-primary font-black text-xs tracking-widest uppercase">LUO WATCH</span>
         </Link>
 
         {/* Controls */}

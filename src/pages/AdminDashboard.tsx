@@ -22,7 +22,7 @@ import {
   Plus, Search, Shield, Crown, DollarSign, RefreshCw, X, Check,
   Download, UserPlus, Upload, Wallet, List, Loader2, ArrowDownToLine, Image, TrendingUp
 } from "lucide-react";
-import { getAllCreatorEarnings, getAllEarningTransactions, resetAllContentCounts, adminCreditEarning, adminAddVJDownloads, CreatorEarning, EarningTransaction } from "@/lib/earnings";
+import { getAllCreatorEarnings, getAllEarningTransactions, resetAllContentCounts, resetAllVJEarnings, adminCreditEarning, adminAddVJDownloads, CreatorEarning, EarningTransaction } from "@/lib/earnings";
 import { cn } from "@/lib/utils";
 import { genreList } from "@/data/categories";
 
@@ -1107,6 +1107,17 @@ const CreatorEarningsTab = () => {
     setResetting(false);
   };
 
+  const handleResetVJEarnings = async () => {
+    if (!confirm("This will reset ALL creator earnings, balances, and download counts to 0. This cannot be undone. Are you sure?")) return;
+    setResetting(true);
+    try {
+      await resetAllVJEarnings();
+      toast.success("All creator earnings have been reset to 0!");
+      await fetchData();
+    } catch { toast.error("Reset failed"); }
+    setResetting(false);
+  };
+
   const vjEarnings = earnings.filter(e => e.creatorRole === "vj");
   const musicianEarnings = earnings.filter(e => e.creatorRole === "musician");
   const totalVJBalance = vjEarnings.reduce((s, e) => s + (e.balance || 0), 0);
@@ -1130,6 +1141,9 @@ const CreatorEarningsTab = () => {
           <button onClick={fetchData} className="text-[9px] text-primary font-semibold flex items-center gap-1"><RefreshCw className="w-2.5 h-2.5" /> Refresh</button>
           <button onClick={handleResetCounts} disabled={resetting} className="text-[9px] bg-destructive text-destructive-foreground px-2.5 py-1 rounded font-bold disabled:opacity-50">
             {resetting ? "Resetting..." : "Reset All Content Counts"}
+          </button>
+          <button onClick={handleResetVJEarnings} disabled={resetting} className="text-[9px] bg-destructive text-destructive-foreground px-2.5 py-1 rounded font-bold disabled:opacity-50">
+            {resetting ? "Resetting..." : "Reset All VJ Earnings"}
           </button>
         </div>
       </div>

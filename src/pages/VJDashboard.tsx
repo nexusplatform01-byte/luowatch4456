@@ -5,7 +5,7 @@ import {
   Receipt, Eye, Download, ChevronLeft, Plus, TrendingUp,
   DollarSign, BarChart3, Trash2, Edit2, X, Check, FolderPlus, Loader2
 } from "lucide-react";
-import { sendWithdrawal, formatPhone } from "@/lib/payments";
+import { sendWithdrawal, formatPhone, pollPaymentStatus } from "@/lib/payments";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -258,21 +258,47 @@ const VJDashboard = () => {
     if (!wPhone) { toast.error("Enter phone number"); return; }
     if (!user) return;
     setWithdrawing(true);
+    const creatorName = `${user.firstName} ${user.lastName}`.trim() || user.email;
+    const formattedPhone = formatPhone(wPhone);
     try {
-      const res = await sendWithdrawal(formatPhone(wPhone), wNet, "VJ earnings withdrawal");
-      if (res.success) {
-        await recordWithdrawal(user.id, `${user.firstName} ${user.lastName}`.trim() || user.email, wAmountNum, formatPhone(wPhone), "completed");
+      const res = await sendWithdrawal(formattedPhone, wNet, "VJ earnings withdrawal");
+      if (!res.success) {
+        await recordWithdrawal(user.id, creatorName, wAmountNum, formattedPhone, "failed");
+        toast.error(res.message || "Withdrawal failed");
+        setWithdrawing(false);
+        return;
+      }
+      // If we have a reference, poll for actual confirmation before deducting
+      if (res.internal_reference) {
+        toast.info("Processing payment, please wait...");
+        pollPaymentStatus(
+          res.internal_reference,
+          async () => {
+            await recordWithdrawal(user.id, creatorName, wAmountNum, formattedPhone, "completed");
+            toast.success(`Withdrawal successful! ${formatUGX(wNet)} sent to your phone.`);
+            setWAmount(""); setWPhone("");
+            getCreatorTransactions(user.id).then(setTransactions).catch(() => {});
+            setWithdrawing(false);
+          },
+          async (data) => {
+            await recordWithdrawal(user.id, creatorName, wAmountNum, formattedPhone, "failed");
+            toast.error(data.message || "Withdrawal could not be completed. Balance not deducted.");
+            setWithdrawing(false);
+          },
+          () => {}
+        );
+      } else {
+        // No reference to poll — treat immediate success as confirmed
+        await recordWithdrawal(user.id, creatorName, wAmountNum, formattedPhone, "completed");
         toast.success(`Withdrawal successful! ${formatUGX(wNet)} sent to your phone.`);
         setWAmount(""); setWPhone("");
         getCreatorTransactions(user.id).then(setTransactions).catch(() => {});
-      } else {
-        await recordWithdrawal(user.id, `${user.firstName} ${user.lastName}`.trim() || user.email, wAmountNum, formatPhone(wPhone), "failed");
-        toast.error(res.message || "Withdrawal failed");
+        setWithdrawing(false);
       }
     } catch {
       toast.error("Withdrawal failed");
+      setWithdrawing(false);
     }
-    setWithdrawing(false);
   };
 
   return (
