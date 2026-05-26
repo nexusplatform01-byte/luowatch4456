@@ -31,11 +31,11 @@ const FeaturedSection = ({ selectedVJ, genreFilter, typeFilter }: FeaturedSectio
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-4 md:grid-cols-5 xl:grid-cols-6 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-5 xl:grid-cols-6 gap-1.5">
           {Array.from({ length: 8 }).map((_, i) => <MovieCardSkeleton key={i} />)}
         </div>
       ) : (
-        <div className="grid grid-cols-4 md:grid-cols-5 xl:grid-cols-6 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-5 xl:grid-cols-6 gap-1.5">
           {filtered.map((movie, i) => (
             <MovieCard key={movie.id} movie={movie} rank={i + 1} />
           ))}
